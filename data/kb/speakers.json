@@ -1,0 +1,368 @@
+[
+  {
+    "speaker_id": "SP-001",
+    "full_name": "Jon Mokoena",
+    "organisation": "Nova Analytics",
+    "job_title": "Head of AI",
+    "email": "jon.mokoena@example.org",
+    "phone": "0783400938",
+    "country": "South Africa",
+    "bio": "Jon Mokoena is a Head of AI at Nova Analytics with 10 years of experience in applied AI. Their work focuses on LLM evaluation, and they have presented at events across Europe. Outside of work, Jon is passionate about African tech ecosystems.",
+    "linkedin_handle": "atlas-demo-sp-001",
+    "session_ids": [
+      "S-006",
+      "S-030"
+    ]
+  },
+  {
+    "speaker_id": "SP-002",
+    "full_name": "John Mokoena",
+    "organisation": "Ironwood AI Research",
+    "job_title": "Data Scientist",
+    "email": "john.mokoena@example.com",
+    "phone": "063 754 8524",
+    "country": "South Africa",
+    "bio": "John Mokoena is a Data Scientist at Ironwood AI Research with 11 years of experience in applied AI. Their work focuses on multi-agent systems, and they have presented at events across the Middle East.",
+    "linkedin_handle": "atlas-demo-sp-002",
+    "session_ids": [
+      "S-016",
+      "S-019"
+    ]
+  },
+  {
+    "speaker_id": "SP-003",
+    "full_name": "Raymond Chang",
+    "organisation": "BrightPath AI",
+    "job_title": "VP of Engineering",
+    "email": "raymond.chang@example.org",
+    "phone": "071-044-4742",
+    "country": "Nigeria",
+    "bio": "Raymond Chang is a VP of Engineering at BrightPath AI with 4 years of experience in applied AI. Their work focuses on computer vision, and they have presented at events across North America.",
+    "linkedin_handle": "atlas-demo-sp-003",
+    "session_ids": [
+      "S-004"
+    ]
+  },
+  {
+    "speaker_id": "SP-004",
+    "full_name": "Donald Johnson",
+    "organisation": "BrightPath AI",
+    "job_title": "ML Engineer",
+    "email": "donald.johnson@example.com",
+    "phone": "+27859196626",
+    "country": "Nigeria",
+    "bio": "Donald Johnson is a ML Engineer at BrightPath AI with 7 years of experience in applied AI. Their work focuses on multi-agent systems, and they have presented at events across Asia.",
+    "linkedin_handle": null,
+    "session_ids": [
+      "S-026"
+    ]
+  },
+  {
+    "speaker_id": "SP-005",
+    "full_name": "Troy Harris",
+    "organisation": "Quantum Ridge Technologies",
+    "job_title": "VP of Engineering",
+    "email": "troy.harris@example.org",
+    "phone": "0626295209",
+    "country": "South Africa",
+    "bio": "Troy Harris is a VP of Engineering at Quantum Ridge Technologies with 18 years of experience in applied AI. Their work focuses on responsible AI, and they have presented at events across Europe.",
+    "linkedin_handle": "atlas-demo-sp-005",
+    "session_ids": [
+      "S-007",
+      "S-014"
+    ]
+  },
+  {
+    "speaker_id": "SP-006",
+    "full_name": "Kevin Hodges",
+    "organisation": "Thabo & Partners Consulting",
+    "job_title": "Head of AI",
+    "email": "kevin.hodges@example.com",
+    "phone": "063 839 3960",
+    "country": "Netherlands",
+    "bio": "Kevin Hodges is a Head of AI at Thabo & Partners Consulting with 7 years of experience in applied AI. Their work focuses on multi-agent systems, and they have presented at events across the Middle East.",
+    "linkedin_handle": "atlas-demo-sp-006",
+    "session_ids": [
+      "S-038"
+    ]
+  },
+  {
+    "speaker_id": "SP-007",
+    "full_name": "David Delgado",
+    "organisation": "BrightPath AI",
+    "job_title": "ML Engineer",
+    "email": "david.delgado@example.org",
+    "phone": "074-831-0943",
+    "country": "United States",
+    "bio": "David Delgado is a ML Engineer at BrightPath AI with 5 years of experience in applied AI. Their work focuses on retrieval-augmented generation, and they have presented at events across the Middle East.",
+    "linkedin_handle": "atlas-demo-sp-007",
+    "session_ids": [
+      "S-015"
+    ]
+  },
+  {
+    "speaker_id": "SP-008",
+    "full_name": "Paige Williams",
+    "organisation": "Nova Analytics",
+    "job_title": "Developer Advocate",
+    "email": "paige.williams@example.com",
+    "phone": "+27643819886",
+    "country": "United States",
+    "bio": "Paige Williams is a Developer Advocate at Nova Analytics with 17 years of experience in applied AI. Their work focuses on computer vision, and they have presented at events across Asia. Outside of work, Paige is passionate about bridging research and production.",
+    "linkedin_handle": null,
+    "session_ids": [
+      "S-024",
+      "S-025",
+      "S-028"
+    ]
+  },
+  {
+    "speaker_id": "SP-009",
+    "full_name": "Ernest Olson",
+    "organisation": "Clearwater Machine Intelligence",
+    "job_title": "Applied Scientist",
+    "email": "ernest.olson@example.org",
+    "phone": "0637811573",
+    "country": "United Kingdom",
+    "bio": "Ernest Olson is a Applied Scientist at Clearwater Machine Intelligence with 4 years of experience in applied AI. Their work focuses on data verification pipelines, and they have presented at events across the Middle East.",
+    "linkedin_handle": "atlas-demo-sp-009",
+    "session_ids": [
+      "S-003",
+      "S-009"
+    ]
+  },
+  {
+    "speaker_id": "SP-010",
+    "full_name": "Terry Daniels",
+    "organisation": "Kalahari Analytics",
+    "job_title": "Research Lead",
+    "email": "terry.daniels@example.com",
+    "phone": "083 874 0476",
+    "country": "Egypt",
+    "bio": "Terry Daniels is a Research Lead at Kalahari Analytics with 10 years of experience in applied AI. Their work focuses on natural language processing, and they have presented at events across North America. Outside of work, Terry is passionate about bridging research and production.",
+    "linkedin_handle": "atlas-demo-sp-010",
+    "session_ids": [
+      "S-022",
+      "S-023"
+    ]
+  },
+  {
+    "speaker_id": "SP-011",
+    "full_name": "Leslie Frey",
+    "organisation": "Khanya AI Labs",
+    "job_title": "Founder & CEO",
+    "email": "leslie.frey@example.org",
+    "phone": "084-595-7566",
+    "country": "United States",
+    "bio": "Leslie Frey is a Founder & CEO at Khanya AI Labs with 3 years of experience in applied AI. Their work focuses on multi-agent systems, and they have presented at events across Asia. Outside of work, Leslie is passionate about open-source tooling.",
+    "linkedin_handle": "atlas-demo-sp-011",
+    "session_ids": [
+      "S-017",
+      "S-035"
+    ]
+  },
+  {
+    "speaker_id": "SP-012",
+    "full_name": "Destiny Farrell",
+    "organisation": "Vantage Point AI",
+    "job_title": "AI Product Manager",
+    "email": "destiny.farrell@example.com",
+    "phone": "+27670618555",
+    "country": "Ghana",
+    "bio": "Destiny Farrell is a AI Product Manager at Vantage Point AI with 3 years of experience in applied AI. Their work focuses on natural language processing, and they have presented at events across Europe. Outside of work, Destiny is passionate about bridging research and production.",
+    "linkedin_handle": null,
+    "session_ids": [
+      "S-012",
+      "S-033"
+    ]
+  },
+  {
+    "speaker_id": "SP-013",
+    "full_name": "Andrew Kane",
+    "organisation": "Jacaranda Systems",
+    "job_title": "AI Product Manager",
+    "email": "andrew.kane@example.org",
+    "phone": "0871592445",
+    "country": "Netherlands",
+    "bio": "Andrew Kane is a AI Product Manager at Jacaranda Systems with 14 years of experience in applied AI. Their work focuses on computer vision, and they have presented at events across Europe.",
+    "linkedin_handle": "atlas-demo-sp-013",
+    "session_ids": [
+      "S-002",
+      "S-040"
+    ]
+  },
+  {
+    "speaker_id": "SP-014",
+    "full_name": "Luis Walker",
+    "organisation": "Northstar Data Labs",
+    "job_title": "Solutions Architect",
+    "email": "luis.walker@example.com",
+    "phone": "088 821 9086",
+    "country": "Nigeria",
+    "bio": "Luis Walker is a Solutions Architect at Northstar Data Labs with 7 years of experience in applied AI. Their work focuses on multi-agent systems, and they have presented at events across North America.",
+    "linkedin_handle": "atlas-demo-sp-014",
+    "session_ids": [
+      "S-018",
+      "S-031"
+    ]
+  },
+  {
+    "speaker_id": "SP-015",
+    "full_name": "Mark Nguyen",
+    "organisation": "Quantum Ridge Technologies",
+    "job_title": "Principal Engineer",
+    "email": "mark.nguyen@example.org",
+    "phone": "081-181-6556",
+    "country": "Kenya",
+    "bio": "Mark Nguyen is a Principal Engineer at Quantum Ridge Technologies with 14 years of experience in applied AI. Their work focuses on data verification pipelines, and they have presented at events across Europe. Outside of work, Mark is passionate about bridging research and production.",
+    "linkedin_handle": "atlas-demo-sp-015",
+    "session_ids": [
+      "S-008",
+      "S-032"
+    ]
+  },
+  {
+    "speaker_id": "SP-016",
+    "full_name": "Latoya Wilson",
+    "organisation": "Silverline Robotics",
+    "job_title": "Research Scientist",
+    "email": "latoya.wilson@example.com",
+    "phone": "+27634858827",
+    "country": "South Africa",
+    "bio": "Latoya Wilson is a Research Scientist at Silverline Robotics with 12 years of experience in applied AI. Their work focuses on multi-agent systems, and they have presented at events across Asia.",
+    "linkedin_handle": null,
+    "session_ids": [
+      "S-020",
+      "S-021"
+    ]
+  },
+  {
+    "speaker_id": "SP-017",
+    "full_name": "James Schmitt",
+    "organisation": "Silverline Robotics",
+    "job_title": "Staff Engineer",
+    "email": "james.schmitt@example.org",
+    "phone": "0604207231",
+    "country": "Nigeria",
+    "bio": "James Schmitt is a Staff Engineer at Silverline Robotics with 8 years of experience in applied AI. Their work focuses on MLOps and observability, and they have presented at events across North America.",
+    "linkedin_handle": "atlas-demo-sp-017",
+    "session_ids": [
+      "S-010",
+      "S-034"
+    ]
+  },
+  {
+    "speaker_id": "SP-018",
+    "full_name": "Sara Thomas",
+    "organisation": "Ironwood AI Research",
+    "job_title": "Director of Engineering",
+    "email": "sara.thomas@example.com",
+    "phone": "081 038 0331",
+    "country": "United Kingdom",
+    "bio": "Sara Thomas is a Director of Engineering at Ironwood AI Research with 4 years of experience in applied AI. Their work focuses on multi-agent systems, and they have presented at events across Europe.",
+    "linkedin_handle": "atlas-demo-sp-018",
+    "session_ids": [
+      "S-005",
+      "S-029"
+    ]
+  },
+  {
+    "speaker_id": "SP-019",
+    "full_name": "Joseph Torres",
+    "organisation": "Horizon Cognition",
+    "job_title": "Applied Scientist",
+    "email": "joseph.torres@example.org",
+    "phone": "073-359-1551",
+    "country": "United States",
+    "bio": "Joseph Torres is a Applied Scientist at Horizon Cognition with 7 years of experience in applied AI. Their work focuses on responsible AI, and they have presented at events across Europe. Outside of work, Joseph is passionate about open-source tooling.",
+    "linkedin_handle": "atlas-demo-sp-019",
+    "session_ids": [
+      "S-026"
+    ]
+  },
+  {
+    "speaker_id": "SP-020",
+    "full_name": "Kevin Lee",
+    "organisation": "Jacaranda Systems",
+    "job_title": "Staff Engineer",
+    "email": "kevin.lee@example.com",
+    "phone": "+27652754481",
+    "country": "India",
+    "bio": "Kevin Lee is a Staff Engineer at Jacaranda Systems with 16 years of experience in applied AI. Their work focuses on MLOps and observability, and they have presented at events across Africa. Outside of work, Kevin is passionate about African tech ecosystems.",
+    "linkedin_handle": null,
+    "session_ids": [
+      "S-001",
+      "S-013"
+    ]
+  },
+  {
+    "speaker_id": "SP-021",
+    "full_name": "Walter Webb",
+    "organisation": "Ubuntu Intelligence",
+    "job_title": "Developer Advocate",
+    "email": "walter.webb@example.org",
+    "phone": "0818290268",
+    "country": "India",
+    "bio": "Walter Webb is a Developer Advocate at Ubuntu Intelligence with 4 years of experience in applied AI. Their work focuses on natural language processing, and they have presented at events across the Middle East.",
+    "linkedin_handle": "atlas-demo-sp-021",
+    "session_ids": [
+      "S-011"
+    ]
+  },
+  {
+    "speaker_id": "SP-022",
+    "full_name": "Samantha Villegas",
+    "organisation": "Mzansi Machine Learning",
+    "job_title": "Data Scientist",
+    "email": "samantha.villegas@example.com",
+    "phone": "072 958 1156",
+    "country": "Nigeria",
+    "bio": "Samantha Villegas is a Data Scientist at Mzansi Machine Learning with 14 years of experience in applied AI. Their work focuses on data verification pipelines, and they have presented at events across North America.",
+    "linkedin_handle": "atlas-demo-sp-022",
+    "session_ids": [
+      "S-039"
+    ]
+  },
+  {
+    "speaker_id": "SP-023",
+    "full_name": "Sheryl Reed",
+    "organisation": "Kalahari Analytics",
+    "job_title": "Principal Engineer",
+    "email": "sheryl.reed@example.org",
+    "phone": "065-978-8188",
+    "country": "United States",
+    "bio": "Sheryl Reed is a Principal Engineer at Kalahari Analytics with 7 years of experience in applied AI. Their work focuses on LLM evaluation, and they have presented at events across North America. Outside of work, Sheryl is passionate about bridging research and production.",
+    "linkedin_handle": "atlas-demo-sp-023",
+    "session_ids": [
+      "S-027"
+    ]
+  },
+  {
+    "speaker_id": "SP-024",
+    "full_name": "Susan Mcfarland",
+    "organisation": "Silverline Robotics",
+    "job_title": "Staff Engineer",
+    "email": "susan.mcfarland@example.com",
+    "phone": "+27741448304",
+    "country": "Ghana",
+    "bio": "Susan Mcfarland is a Staff Engineer at Silverline Robotics with 12 years of experience in applied AI. Their work focuses on MLOps and observability, and they have presented at events across Africa.",
+    "linkedin_handle": null,
+    "session_ids": [
+      "S-037"
+    ]
+  },
+  {
+    "speaker_id": "SP-025",
+    "full_name": "Melissa Cross",
+    "organisation": "Horizon Cognition",
+    "job_title": "AI Product Manager",
+    "email": "melissa.cross@example.org",
+    "phone": "0803323108",
+    "country": "Germany",
+    "bio": "Melissa Cross is a AI Product Manager at Horizon Cognition with 11 years of experience in applied AI. Their work focuses on retrieval-augmented generation, and they have presented at events across North America.",
+    "linkedin_handle": "atlas-demo-sp-025",
+    "session_ids": [
+      "S-036"
+    ]
+  }
+]

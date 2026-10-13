@@ -1,0 +1,18 @@
+{
+  "kb_version": "1.0.0",
+  "generator_seed": 42,
+  "files": {
+    "sessions.csv": {
+      "sha256": "333a558632cf11df8b72c09a51611afed572e25338835d696661c3b51ecd9f79"
+    },
+    "speakers.json": {
+      "sha256": "14b327d35b12c39e774170901fdc3099d115c2c9bd004bbe74b4821dbdead23f"
+    },
+    "venue_guide.pdf": {
+      "sha256": "484a83683df671e8277a1d0340596851fae09ada4dcbcb1952e91ff90c3fcba7"
+    },
+    "kb_gold.jsonl": {
+      "sha256": "ab00c6fbc75bfad7738721abc66db606cc525fd16bddb4d360796d3013711ce8"
+    }
+  }
+}
