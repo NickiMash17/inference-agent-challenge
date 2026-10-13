@@ -20,8 +20,14 @@ from rag.models import Chunk
 _TOKEN_RE = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
 
 
-def tokenize(text: str) -> list[str]:
-    return _TOKEN_RE.findall(text.lower())
+def tokenize(text: str, stopwords: frozenset[str] | None = None) -> list[str]:
+    """Tokenizes text, keeping IDs like "s-009" intact as single tokens.
+    If `stopwords` is given, tokens exactly matching a stopword are dropped
+    (an ID never collides with an English stopword, so IDs always survive)."""
+    tokens = _TOKEN_RE.findall(text.lower())
+    if stopwords:
+        tokens = [t for t in tokens if t not in stopwords]
+    return tokens
 
 
 class VectorIndex(Protocol):
@@ -32,33 +38,31 @@ class VectorIndex(Protocol):
 class BM25Index:
     """Lexical retrieval over chunk text with rank_bm25's Okapi BM25."""
 
-    def __init__(self) -> None:
+    def __init__(self, tokenizer=tokenize) -> None:
+        self.tokenizer = tokenizer
         self.chunks: list[Chunk] = []
         self._bm25: BM25Okapi | None = None
 
     def add(self, chunks: list[Chunk]) -> None:
         self.chunks = list(chunks)
-        self._bm25 = BM25Okapi([tokenize(c.text) for c in self.chunks])
+        self._bm25 = BM25Okapi([self.tokenizer(c.text) for c in self.chunks])
 
     def search(self, query: str, k: int) -> list[tuple[Chunk, float]]:
         assert self._bm25 is not None, "call add() before search()"
-        scores = self._bm25.get_scores(tokenize(query))
+        scores = self._bm25.get_scores(self.tokenizer(query))
         top = np.argsort(-scores)[:k]
         return [(self.chunks[i], float(scores[i])) for i in top]
 
 
-class NumpyVectorIndex:
-    """Dense retrieval using fastembed's BAAI/bge-small-en-v1.5, with exact
-    cosine similarity (L2-normalized embeddings, matrix multiply). Uses the
-    model's dedicated query_embed/passage_embed methods so BGE's query
-    instruction prefix is applied correctly (and only to queries)."""
+class _EmbeddingModelCache:
+    """Shared fastembed model loading, L2 normalization, and on-disk
+    embedding cache helpers, for any index built on the same embedding
+    model (dense passage vectors, multi-representation vectors, ...)."""
 
     MODEL_NAME = "BAAI/bge-small-en-v1.5"
 
     def __init__(self, cache_dir: Path | None = None) -> None:
         self.cache_dir = cache_dir
-        self.chunks: list[Chunk] = []
-        self.embeddings: np.ndarray | None = None
         self._model = None
 
     def _get_model(self):
@@ -73,6 +77,34 @@ class NumpyVectorIndex:
         norms = np.linalg.norm(vecs, axis=-1, keepdims=True)
         return vecs / np.clip(norms, 1e-12, None)
 
+    def _cache_path(self, key: str) -> Path:
+        assert self.cache_dir is not None
+        return self.cache_dir / f"{key}.npz"
+
+    def _load_cached(self, key: str) -> np.ndarray | None:
+        if self.cache_dir is None:
+            return None
+        path = self._cache_path(key)
+        return np.load(path)["embeddings"] if path.exists() else None
+
+    def _save_cache(self, key: str, vecs: np.ndarray) -> None:
+        if self.cache_dir is None:
+            return
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        np.savez(self._cache_path(key), embeddings=vecs)
+
+
+class NumpyVectorIndex(_EmbeddingModelCache):
+    """Dense retrieval using fastembed's BAAI/bge-small-en-v1.5, with exact
+    cosine similarity (L2-normalized embeddings, matrix multiply). Uses the
+    model's dedicated query_embed/passage_embed methods so BGE's query
+    instruction prefix is applied correctly (and only to queries)."""
+
+    def __init__(self, cache_dir: Path | None = None) -> None:
+        super().__init__(cache_dir)
+        self.chunks: list[Chunk] = []
+        self.embeddings: np.ndarray | None = None
+
     def _cache_key(self, chunks: list[Chunk]) -> str:
         h = hashlib.sha256()
         h.update(self.MODEL_NAME.encode("utf-8"))
@@ -83,27 +115,18 @@ class NumpyVectorIndex:
             h.update(b"\0")
         return h.hexdigest()
 
-    def _cache_path(self, key: str) -> Path:
-        assert self.cache_dir is not None
-        return self.cache_dir / f"{key}.npz"
-
     def add(self, chunks: list[Chunk]) -> None:
         self.chunks = list(chunks)
         key = self._cache_key(self.chunks)
 
-        if self.cache_dir is not None:
-            path = self._cache_path(key)
-            if path.exists():
-                self.embeddings = np.load(path)["embeddings"]
-                return
+        cached = self._load_cached(key)
+        if cached is not None:
+            self.embeddings = cached
+            return
 
-        model = self._get_model()
-        vecs = np.array(list(model.passage_embed([c.text for c in self.chunks])))
+        vecs = np.array(list(self._get_model().passage_embed([c.text for c in self.chunks])))
         self.embeddings = self._normalize(vecs)
-
-        if self.cache_dir is not None:
-            self.cache_dir.mkdir(parents=True, exist_ok=True)
-            np.savez(self._cache_path(key), embeddings=self.embeddings)
+        self._save_cache(key, self.embeddings)
 
     def search(self, query: str, k: int) -> list[tuple[Chunk, float]]:
         assert self.embeddings is not None, "call add() before search()"

@@ -123,6 +123,7 @@ def load_sessions(
                 doc_type="session",
                 metadata={
                     "session_id": session_id,
+                    "title": row["title"],
                     "track": row["track"],
                     "level": row["level"],
                     "day": row["day"],
@@ -162,6 +163,8 @@ def load_speakers(speakers_rows: list[dict], sessions_by_id: dict[str, dict]) ->
                 doc_type="speaker",
                 metadata={
                     "speaker_id": speaker_id,
+                    "full_name": sp["full_name"],
+                    "job_title": sp["job_title"],
                     "organisation": sp["organisation"],
                     "country": sp["country"],
                     "email": sp["email"],
