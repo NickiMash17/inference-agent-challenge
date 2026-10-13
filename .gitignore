@@ -29,6 +29,7 @@ htmlcov/
 
 # Data caches / vector stores
 data/cache/
+data/index/
 data/**/*.index
 data/**/*.faiss
 data/**/chroma/
@@ -36,6 +37,9 @@ data/**/*.sqlite
 data/**/*.db
 .chroma/
 .langchain/
+
+# Eval run outputs
+evals/results/
 
 # Logs
 *.log
