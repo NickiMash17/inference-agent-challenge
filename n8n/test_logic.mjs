@@ -228,7 +228,7 @@ Thanks,
 John`,
   },
   {
-    subject: "Re: Atlas AI Summit — RSVP",
+    subject: "Re: Atlas AI Summit - RSVP",
     body: `Hi,
 
 Confirming attendance for the Atlas AI Summit. My contact info:
@@ -267,7 +267,7 @@ paige.williams@example.com
     subject: "Atlas AI Summit - RSVP (sorry, resending)",
     body: `Hi again,
 
-Sorry, I don't think my earlier RSVP went through properly - resending.
+Sorry, I don't think my earlier RSVP went through properly, resending.
 
 Paige Willams
 Nova Analytics
@@ -280,7 +280,7 @@ Thanks!`,
 
 const CALENDAR_EVENTS = [
   {
-    summary: "Atlas AI Summit — Welcome Reception",
+    summary: "Atlas AI Summit - Welcome Reception",
     description: `Welcome reception for all Atlas AI Summit attendees and speakers.
 
 Confirmed attendees include:
@@ -289,7 +289,7 @@ Confirmed attendees include:
 - Paige Williams, Nova Analytics`,
   },
   {
-    summary: "Atlas AI Summit — Closing Networking Lunch",
+    summary: "Atlas AI Summit - Closing Networking Lunch",
     description: `Closing lunch, open to all attendees.
 
 Confirmed attendees include:

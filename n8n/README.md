@@ -41,9 +41,11 @@ the `x-api-key` header, not an `Authorization: Bearer ...` header.
 
 - **Assign all three credentials** (above) on their respective nodes - a
   fresh import never carries real credentials with it.
-- **Gmail node's `q` filter** (`to:nene171408+atlas@gmail.com`) assumes the
-  seed emails were sent to that address, per
-  `data/synthetic/part2_seed.md`. Change it if you seeded a different inbox.
+- **Gmail node's `q` filter** is set to `to:your-address+atlas@gmail.com`, a
+  placeholder. Open the **Gmail - Get Many** node and change the `q` filter
+  under its Filters section to the real address you seeded, for example
+  `to:you+atlas@gmail.com`, matching whatever address you used in
+  `data/synthetic/part2_seed.md`.
 - **Google Calendar node's calendar** is set to `primary`. Change it if the
   seed events live on a different calendar.
 - **The two `HTTP Request` nodes that fetch `speakers.json` and
@@ -69,7 +71,8 @@ same order, so it can be read or edited without opening n8n).
 
 1. **Manual Trigger**
 2. **Gmail - Get Many** - `resource: message`, `operation: getAll`,
-   `returnAll: true`, Simplify **off**, `q: to:nene171408+atlas@gmail.com`
+   `returnAll: true`, Simplify **off**, `q: to:your-address+atlas@gmail.com`
+   (placeholder, set to your real address, see below)
 3. **Build Extraction Prompt** (Code) - decodes each Gmail message's
    base64url body (text/plain, falling back to stripped text/html) and
    builds the first extraction prompt. The prompt carries only the subject

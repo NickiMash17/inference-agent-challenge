@@ -7,7 +7,7 @@ Source refs follow the same "file#anchor" convention as evals/kb_gold.jsonl:
   - "venue_guide.pdf#rooms:R-04"       (row-level, refines the table-level ref)
 A gold item's table-level ref ("...#rooms") is satisfied by either the
 summary chunk (exact match) or any row-level chunk under that table (prefix
-match) — see evals/retrieval_eval.py's `ref_matches`.
+match), see evals/retrieval_eval.py's `ref_matches`.
 """
 
 from __future__ import annotations

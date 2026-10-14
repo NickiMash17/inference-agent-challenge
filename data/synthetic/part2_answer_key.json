@@ -66,7 +66,7 @@
     {
       "id": "err-6-email-mismatch",
       "source": "email",
-      "location": "Email 6 of 9 (subject: 'Re: Atlas AI Summit — RSVP')",
+      "location": "Email 6 of 9 (subject: 'Re: Atlas AI Summit - RSVP')",
       "attendee": "Leslie Frey",
       "speaker_id": "SP-011",
       "field": "email",
@@ -88,7 +88,7 @@
     {
       "id": "err-8-calendar-org-typo",
       "source": "calendar",
-      "location": "Event 2 ('Atlas AI Summit — Closing Networking Lunch', 19 Nov 2026)",
+      "location": "Event 2 ('Atlas AI Summit - Closing Networking Lunch', 19 Nov 2026)",
       "attendee": "Joseph Torres",
       "speaker_id": "SP-019",
       "field": "organisation",

@@ -103,11 +103,11 @@ results.
 - Relabelled `G-016` ("Which speaker has given the most sessions that are
   going ahead, and what is their job title?") from `answer_type: cross_doc`
   to `answer_type: aggregation`. It's a COUNT + GROUP BY + tie-broken
-  ORDER BY query joined against speakers for the job title — the same shape
+  ORDER BY query joined against speakers for the job title, the same shape
   as `G-010`, not a simple two-hop lookup. Added its hand-written SQL to
   `evals/sql_sanity.py` (confirmed passing).
 - `sessions.csv`, `speakers.json`, and `venue_guide.pdf` are byte-identical
-  to 1.0.0 — only `evals/kb_gold.jsonl`'s label changed, so `manifest.json`
+  to 1.0.0. Only `evals/kb_gold.jsonl`'s label changed, so `manifest.json`
   updates only the `kb_gold.jsonl` hash (plus the new `kb_heldout.jsonl`
   entry introduced in this version).
 - Added `evals/kb_heldout.jsonl`: 15 items (3 lookup, 3 aggregation, 3

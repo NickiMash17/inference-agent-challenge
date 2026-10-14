@@ -204,7 +204,7 @@ class IdPinningRetriever:
     top of the results, in order of appearance, ahead of anything fusion
     would have ranked. Remaining slots are filled from the wrapped
     retriever's results, deduplicated against the pinned chunks. An ID that
-    doesn't resolve to a real chunk (e.g. S-999) never crashes the search —
+    doesn't resolve to a real chunk (e.g. S-999) never crashes the search:
     it's simply recorded in `last_unresolved_ids` for the caller to inspect."""
 
     def __init__(self, inner, chunk_by_ref: dict[str, Chunk]) -> None:

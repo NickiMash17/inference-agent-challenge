@@ -1,22 +1,22 @@
-# Part 2 seed data — Atlas AI Summit RSVP inbox + calendar
+# Part 2 seed data: Atlas AI Summit RSVP inbox and calendar
 
-This file is ready-to-paste content for manual Gmail / Google Calendar
+This file is ready-to-paste content for manual Gmail and Google Calendar
 seeding. It is **not** used by any Part 1 code and is not read by any
-script in this repo — it exists purely as fixture content for the Part 2
+script in this repo. It exists purely as fixture content for the Part 2
 (n8n) agent, which is built and documented separately.
 
 **Speaker directory (ground truth):**
 https://raw.githubusercontent.com/NickiMash17/inference-agent-challenge/main/data/kb/speakers.json
 
 **Identity note:** every email below will actually be sent from one Gmail
-account (mine) to `nene171408+atlas@gmail.com`, so the Gmail **From**
+account (mine) to `your-address+atlas@gmail.com`, so the Gmail **From**
 header will always be the same address for all 9 messages. It carries no
-identity information. Each attendee's real identity — name, organisation,
-email, phone — comes **only from the email body / signature text**, never
+identity information. Each attendee's real identity, name, organisation,
+email, phone, comes **only from the email body or signature text**, never
 from the From header. The Part 2 agent must be built on that assumption.
 
-There are **9 emails**, not 8, because one of the 8 planted errors (the
-duplicate RSVP) inherently requires two messages — the original RSVP and
+There are **9 emails**, not 8, because one of the 8 planted errors, the
+duplicate RSVP, inherently requires two messages: the original RSVP and
 the later duplicate with a misspelled name. The other 7 planted errors
 each live in their own single email. This is called out again at that
 item below.
@@ -25,7 +25,7 @@ item below.
 
 ## 1. RSVP emails
 
-### Email 1 of 9 — control case (clean, fully correct)
+### Email 1 of 9: control case (clean, fully correct)
 
 **Subject:** RSVP - Atlas AI Summit
 
@@ -44,13 +44,13 @@ troy.harris@example.org
 062 629 5209
 ```
 
-*(Planted error: none — this is the control case. Name, organisation,
+*(Planted error: none. This is the control case. Name, organisation,
 email, and phone all match the directory entry for SP-005 exactly, phone
 reformatted with spaces but same digits.)*
 
 ---
 
-### Email 2 of 9 — messy phone format
+### Email 2 of 9: messy phone format
 
 **Subject:** re: Atlas AI Summit attendance
 
@@ -70,14 +70,14 @@ tel: 087 159 2445
 See you there
 ```
 
-*(Planted error: phone number in a messy local format. Directory phone
-for SP-004... check — directory phone for Andrew Kane (SP-013) is
-`0871592445`; this email gives the same digits as `087 159 2445`. Name,
-org, and email all match the directory exactly.)*
+*(Planted error: phone number in a messy local format. The directory
+phone for Andrew Kane (SP-013) is `0871592445`; this email gives the same
+digits as `087 159 2445`. Name, org, and email all match the directory
+exactly.)*
 
 ---
 
-### Email 3 of 9 — misspelled organisation name
+### Email 3 of 9: misspelled organisation name
 
 **Subject:** RSVP: Atlas AI Summit
 
@@ -94,13 +94,13 @@ Silver Line Robotics
 latoya.wilson@example.com
 ```
 
-*(Planted error: organisation misspelled as "Silver Line Robotics" —
+*(Planted error: organisation misspelled as "Silver Line Robotics". The
 directory organisation for SP-016 is "Silverline Robotics" (one word).
 Name and email match the directory exactly; no phone given.)*
 
 ---
 
-### Email 4 of 9 — missing email address
+### Email 4 of 9: missing email address
 
 **Subject:** Atlas Summit - confirming attendance
 
@@ -117,14 +117,14 @@ Joseph Torres
 Horizon Cognition
 ```
 
-*(Planted error: no email address given anywhere in the body — only name,
+*(Planted error: no email address given anywhere in the body, only name,
 organisation, and phone. Directory phone for SP-019 is `073-359-1551`,
 matching exactly, so the missing email should be resolvable from the
-directory via name+phone.)*
+directory via name and phone.)*
 
 ---
 
-### Email 5 of 9 — Jon/John Mokoena identity collision
+### Email 5 of 9: Jon/John Mokoena identity collision
 
 **Subject:** RSVP - Atlas AI Summit 2026
 
@@ -151,16 +151,16 @@ SP-001 "Jon Mokoena" / Nova Analytics / jon.mokoena@example.org /
 john.mokoena@example.com / 0637548524. This email's **name spelling**
 ("John") matches SP-002 exactly, but its **organisation** ("Nova
 Analytics") matches SP-001 exactly, and its email/phone match neither
-exactly (close to both but not identical — `john.mokoena@example.org` is
+exactly: close to both but not identical. `john.mokoena@example.org` is
 SP-002's local part at SP-001's domain-style TLD, and the phone
-`0834000938` isn't a reformat of either speaker's number). This should be
+`0834000938` isn't a reformat of either speaker's number. This should be
 flagged for human review, not silently resolved to either speaker ID.)*
 
 ---
 
-### Email 6 of 9 — email differs from directory
+### Email 6 of 9: email differs from directory
 
-**Subject:** Re: Atlas AI Summit — RSVP
+**Subject:** Re: Atlas AI Summit - RSVP
 
 **Body:**
 
@@ -185,7 +185,7 @@ email itself doesn't match.)*
 
 ---
 
-### Email 7 of 9 — person not in the directory at all
+### Email 7 of 9: person not in the directory at all
 
 **Subject:** Atlas AI Summit - RSVP
 
@@ -205,13 +205,13 @@ priya.naidoo@example.com
 
 *(Planted error: "Priya Naidoo" does not appear anywhere in
 `speakers.json`. This is a legitimate new attendee, not a data error to
-correct — the correct handling is to add her to the attendee list as a
+correct. The correct handling is to add her to the attendee list as a
 non-speaker delegate, not to try to match her to an existing speaker
 record.)*
 
 ---
 
-### Email 8 of 9 — duplicate RSVP, part 1 of 2 (original)
+### Email 8 of 9: duplicate RSVP, part 1 of 2 (original)
 
 **Subject:** RSVP - Atlas AI Summit
 
@@ -228,12 +228,12 @@ paige.williams@example.com
 +27643819886
 ```
 
-*(No error on its own — this is the first, correct RSVP from SP-008. It
+*(No error on its own. This is the first, correct RSVP from SP-008. It
 exists so Email 9 below has something to duplicate.)*
 
 ---
 
-### Email 9 of 9 — duplicate RSVP, part 2 of 2 (same person, name typo)
+### Email 9 of 9: duplicate RSVP, part 2 of 2 (same person, name typo)
 
 **Subject:** Atlas AI Summit - RSVP (sorry, resending)
 
@@ -242,7 +242,7 @@ exists so Email 9 below has something to duplicate.)*
 ```
 Hi again,
 
-Sorry, I don't think my earlier RSVP went through properly — resending.
+Sorry, I don't think my earlier RSVP went through properly, resending.
 
 Paige Willams
 Nova Analytics
@@ -263,8 +263,8 @@ into a single attendee, SP-008, canonical name "Paige Williams".)*
 
 ### Event 1
 
-- **Title:** Atlas AI Summit — Welcome Reception
-- **Date/time:** 18 November 2026, 18:00–20:00 (Hall A foyer)
+- **Title:** Atlas AI Summit - Welcome Reception
+- **Date/time:** 18 November 2026, 18:00 to 20:00 (Hall A foyer)
 - **Description:**
 
 ```
@@ -277,14 +277,14 @@ Confirmed attendees include:
 ```
 
 *(No planted error in this event. All three names/organisations here
-match the directory exactly and overlap with Emails 1, 3, 8/9 above —
+match the directory exactly and overlap with Emails 1, 3, 8/9 above,
 useful for cross-checking that the agent treats matching calendar and
 email data as corroborating, not conflicting.)*
 
 ### Event 2
 
-- **Title:** Atlas AI Summit — Closing Networking Lunch
-- **Date/time:** 19 November 2026, 12:30–13:30 (Hall B)
+- **Title:** Atlas AI Summit - Closing Networking Lunch
+- **Date/time:** 19 November 2026, 12:30 to 13:30 (Hall B)
 - **Description:**
 
 ```
@@ -296,15 +296,15 @@ Confirmed attendees include:
 - Joseph Torres, Horizon Cognitions
 ```
 
-*(Planted error — the one calendar error called for in the brief:
+*(Planted error, the one calendar error called for in the brief:
 "Horizon Cognitions" has an extra trailing "s". The directory
 organisation for SP-019 Joseph Torres is "Horizon Cognition". This
 overlaps with Email 4 above, where the same person's organisation was
-given correctly — a good test of using the email RSVP to correct the
+given correctly, a good test of using the email RSVP to correct the
 calendar typo, or vice versa flagging the mismatch.)*
 
 ---
 
 See `data/synthetic/part2_answer_key.json` for the full list of planted
-errors (source, field, planted value, correct value/resolution) and the
+errors (source, field, planted value, correct value or resolution) and the
 expected final deduplicated attendee list.

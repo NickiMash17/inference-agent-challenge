@@ -23,11 +23,11 @@ MAX_CHARS = 500
 MAX_QUESTIONS = 20
 
 ROUTE_LABELS = {
-    "id_lookup": "🔑 ID lookup",
-    "sql": "🧮 SQL",
-    "retrieve": "🔍 Retrieve",
-    "rewrite_retrieve": "🔁 Rewrite + retrieve",
-    "out_of_scope": "❓ Out of scope",
+    "id_lookup": "ID lookup",
+    "sql": "SQL",
+    "retrieve": "Retrieve",
+    "rewrite_retrieve": "Rewrite + retrieve",
+    "out_of_scope": "Out of scope",
 }
 
 
@@ -53,17 +53,17 @@ def pick_example_questions(gold_items: list[dict]) -> dict[str, str]:
         return None
 
     candidates = {
-        "🔑 An ID lookup": first(
+        "An ID lookup": first(
             lambda i: i["answer_type"] == "lookup" and ID_PATTERN.search(i["question"])
         ),
-        "🧮 A count question": first(lambda i: i["answer_type"] == "aggregation"),
-        "🧭 A keyword-free topic": first(lambda i: i["answer_type"] == "semantic"),
-        "🏢 A cross-document accessibility question": first(
+        "A count question": first(lambda i: i["answer_type"] == "aggregation"),
+        "A keyword-free topic": first(lambda i: i["answer_type"] == "semantic"),
+        "A cross-document accessibility question": first(
             lambda i: i["answer_type"] == "cross_doc" and "accessible" in i["question"].lower()
         ),
-        "🚫 The cancelled session": first(lambda i: i["expected_value"] == "Cancelled"),
-        "📦 The moved session": first(lambda i: "moved" in i["question"].lower()),
-        "🙅 A negative question": first(lambda i: i["answer_type"] == "negative"),
+        "The cancelled session": first(lambda i: i["expected_value"] == "Cancelled"),
+        "The moved session": first(lambda i: "moved" in i["question"].lower()),
+        "A negative question": first(lambda i: i["answer_type"] == "negative"),
     }
     return {label: question for label, question in candidates.items() if question}
 
@@ -99,9 +99,9 @@ def render_answer_meta(meta: dict, chunk_by_ref: dict) -> None:
     cols[2].markdown(f"**Cost**  \n${meta['cost_usd']:.5f}")
 
     if meta["not_in_kb"]:
-        st.info("🙅 Not in the knowledge base.")
+        st.info("Not in the knowledge base.")
     if meta["low_confidence"]:
-        st.warning("⚠️ Low confidence: no citation could be verified against the context.")
+        st.warning("Low confidence: no citation could be verified against the context.")
 
     if meta["sql"]:
         st.caption("Generated SQL")
@@ -159,7 +159,7 @@ def handle_question(question: str, resources: dict) -> None:
 
 
 def main() -> None:
-    st.set_page_config(page_title="Part 1: RAG", page_icon="💬")
+    st.set_page_config(page_title="Part 1: RAG")
     st.title("Part 1: RAG")
     st.caption("Ask about the Atlas AI Summit's sessions, speakers, venue, or policies.")
 
@@ -189,7 +189,15 @@ def main() -> None:
             if st.button(label, width="stretch", disabled=limit_reached):
                 pending_question = question
         st.divider()
-        st.caption(
+        # A placeholder, not a direct st.caption() call: handle_question()
+        # below increments question_count later in this same script run, and
+        # a plain st.caption() here would keep showing the count from before
+        # that increment until the next rerun (reported as the sidebar
+        # showing "2/20" right after the 3rd question). Writing into the
+        # placeholder again after handle_question() runs keeps this in sync
+        # within the same run.
+        question_count_caption = st.empty()
+        question_count_caption.caption(
             f"Questions asked this session: {st.session_state.question_count}/{MAX_QUESTIONS}"
         )
 
@@ -214,6 +222,9 @@ def main() -> None:
     question = pending_question or typed_question
     if question and not limit_reached and not is_over_char_limit(question):
         handle_question(question, resources)
+        question_count_caption.caption(
+            f"Questions asked this session: {st.session_state.question_count}/{MAX_QUESTIONS}"
+        )
 
 
 if __name__ == "__main__":

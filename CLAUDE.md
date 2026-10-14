@@ -2,7 +2,7 @@
 
 These rules apply to any assistant or automated agent working in this
 repository. They exist because of specific incidents during this project's
-development (see `CHANGELOG.md`) — follow them exactly, not just in spirit.
+development (see `CHANGELOG.md`). Follow them exactly, not just in spirit.
 
 ## Held-out set
 
@@ -11,7 +11,7 @@ development (see `CHANGELOG.md`) — follow them exactly, not just in spirit.
   means: no `--heldout` runs, no `--heldout --final` runs, no "just
   checking the guard works" runs, no running it against a toy/mock config
   to verify behaviour. A held-out evaluation already happened by accident
-  once during development (see `CHANGELOG.md` 1.0.2) — that set was
+  once during development (see `CHANGELOG.md` 1.0.2): that set was
   retired and replaced. It must not happen again, for any reason, including
   verifying that the refusal guard itself works. Test the guard only via
   its pure logic function (`heldout_guard_error` in
@@ -28,7 +28,7 @@ development (see `CHANGELOG.md`) — follow them exactly, not just in spirit.
 
 - **NEVER print, log, or echo secrets or `.env` contents.**
 - The API key environment variable is **`ATLAS_ANTHROPIC_API_KEY`**. Never
-  use or set `ANTHROPIC_API_KEY` — that name is not this project's key and
+  use or set `ANTHROPIC_API_KEY`: that name is not this project's key and
   must not appear in code, config, or shell commands here.
 
 ## Knowledge base versioning
@@ -58,7 +58,7 @@ development (see `CHANGELOG.md`) — follow them exactly, not just in spirit.
 ## When a rule blocks a task
 
 - **If a rule in this file blocks what a task is asking for, stop and
-  ask — don't work around it.** This includes finding a technically-
+  ask. Don't work around it.** This includes finding a technically
   different way to achieve the same blocked outcome (e.g. a "dry run" that
   still reads `kb_heldout.jsonl`'s contents, or scripting around the
   `--heldout`/`--final`/`HELDOUT_CONFIRM` guard). If the rule seems wrong

@@ -18,7 +18,7 @@ import streamlit as st  # noqa: E402
 BASELINE_PATH = ROOT / "evals" / "baselines" / "e2e_v2.json"
 REPO_URL = "https://github.com/NickiMash17/inference-agent-challenge"
 
-st.set_page_config(page_title="Atlas AI Summit Q&A", page_icon="🎤")
+st.set_page_config(page_title="Atlas AI Summit Q&A")
 
 st.title("Atlas AI Summit Q&A")
 
