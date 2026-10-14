@@ -1,0 +1,784 @@
+{
+  "config": "v3_vector_only",
+  "gold_set": "kb_gold.jsonl",
+  "kb_version": "1.0.1",
+  "embedding_model": "BAAI/bge-small-en-v1.5",
+  "git_commit_sha": "85192988c4278ea4b2843b573c78e184af06904d",
+  "timestamp": "20261013T202109Z",
+  "chunk_count": 82,
+  "gold_item_count": 19,
+  "result": {
+    "retriever": "v3_vector_only",
+    "overall": {
+      "n": 19,
+      "recall@1": 0.737,
+      "recall@3": 0.737,
+      "recall@5": 0.737,
+      "mrr": 0.737
+    },
+    "by_answer_type": {
+      "lookup": {
+        "n": 6,
+        "recall@1": 0.5,
+        "recall@3": 0.5,
+        "recall@5": 0.5,
+        "mrr": 0.5
+      },
+      "semantic": {
+        "n": 5,
+        "recall@1": 0.6,
+        "recall@3": 0.6,
+        "recall@5": 0.6,
+        "mrr": 0.6
+      },
+      "cross_doc": {
+        "n": 4,
+        "recall@1": 1.0,
+        "recall@3": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "all_refs@5": 0.25
+      },
+      "policy": {
+        "n": 4,
+        "recall@1": 1.0,
+        "recall@3": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0
+      }
+    },
+    "per_item": [
+      {
+        "id": "G-001",
+        "question": "What is the title of session S-001?",
+        "answer_type": "lookup",
+        "source_refs": [
+          "sessions.csv#S-001"
+        ],
+        "rank": 1,
+        "hit_at": {
+          "1": true,
+          "3": true,
+          "5": true
+        },
+        "all_refs_at_5": null,
+        "unresolved_ids": [],
+        "top5": [
+          {
+            "source_ref": "sessions.csv#S-001",
+            "score": 0.8195
+          },
+          {
+            "source_ref": "sessions.csv#S-010",
+            "score": 0.7478
+          },
+          {
+            "source_ref": "sessions.csv#S-039",
+            "score": 0.7338
+          },
+          {
+            "source_ref": "sessions.csv#S-037",
+            "score": 0.7265
+          },
+          {
+            "source_ref": "sessions.csv#S-035",
+            "score": 0.7245
+          }
+        ]
+      },
+      {
+        "id": "G-002",
+        "question": "Which room is session S-004 held in?",
+        "answer_type": "lookup",
+        "source_refs": [
+          "sessions.csv#S-004"
+        ],
+        "rank": null,
+        "hit_at": {
+          "1": false,
+          "3": false,
+          "5": false
+        },
+        "all_refs_at_5": null,
+        "unresolved_ids": [],
+        "top5": [
+          {
+            "source_ref": "sessions.csv#S-014",
+            "score": 0.7423
+          },
+          {
+            "source_ref": "sessions.csv#S-007",
+            "score": 0.7128
+          },
+          {
+            "source_ref": "sessions.csv#S-002",
+            "score": 0.7123
+          },
+          {
+            "source_ref": "sessions.csv#S-040",
+            "score": 0.7067
+          },
+          {
+            "source_ref": "sessions.csv#S-034",
+            "score": 0.7059
+          }
+        ]
+      },
+      {
+        "id": "G-003",
+        "question": "What is the email address of speaker SP-009?",
+        "answer_type": "lookup",
+        "source_refs": [
+          "speakers.json#SP-009"
+        ],
+        "rank": 1,
+        "hit_at": {
+          "1": true,
+          "3": true,
+          "5": true
+        },
+        "all_refs_at_5": null,
+        "unresolved_ids": [],
+        "top5": [
+          {
+            "source_ref": "speakers.json#SP-009",
+            "score": 0.6549
+          },
+          {
+            "source_ref": "speakers.json#SP-018",
+            "score": 0.6428
+          },
+          {
+            "source_ref": "speakers.json#SP-007",
+            "score": 0.6373
+          },
+          {
+            "source_ref": "speakers.json#SP-017",
+            "score": 0.6356
+          },
+          {
+            "source_ref": "speakers.json#SP-024",
+            "score": 0.6355
+          }
+        ]
+      },
+      {
+        "id": "G-004",
+        "question": "What is the status of session S-015?",
+        "answer_type": "lookup",
+        "source_refs": [
+          "sessions.csv#S-015"
+        ],
+        "rank": null,
+        "hit_at": {
+          "1": false,
+          "3": false,
+          "5": false
+        },
+        "all_refs_at_5": null,
+        "unresolved_ids": [],
+        "top5": [
+          {
+            "source_ref": "sessions.csv#S-001",
+            "score": 0.7325
+          },
+          {
+            "source_ref": "sessions.csv#S-010",
+            "score": 0.7167
+          },
+          {
+            "source_ref": "sessions.csv#S-014",
+            "score": 0.7119
+          },
+          {
+            "source_ref": "sessions.csv#S-018",
+            "score": 0.7052
+          },
+          {
+            "source_ref": "sessions.csv#S-035",
+            "score": 0.6974
+          }
+        ]
+      },
+      {
+        "id": "G-005",
+        "question": "Before it moved, which room was session S-038 originally scheduled in?",
+        "answer_type": "lookup",
+        "source_refs": [
+          "sessions.csv#S-038"
+        ],
+        "rank": 1,
+        "hit_at": {
+          "1": true,
+          "3": true,
+          "5": true
+        },
+        "all_refs_at_5": null,
+        "unresolved_ids": [],
+        "top5": [
+          {
+            "source_ref": "sessions.csv#S-038",
+            "score": 0.7589
+          },
+          {
+            "source_ref": "sessions.csv#S-039",
+            "score": 0.7253
+          },
+          {
+            "source_ref": "sessions.csv#S-036",
+            "score": 0.712
+          },
+          {
+            "source_ref": "sessions.csv#S-032",
+            "score": 0.7112
+          },
+          {
+            "source_ref": "sessions.csv#S-018",
+            "score": 0.7109
+          }
+        ]
+      },
+      {
+        "id": "G-006",
+        "question": "What organisation is speaker SP-002 affiliated with?",
+        "answer_type": "lookup",
+        "source_refs": [
+          "speakers.json#SP-002"
+        ],
+        "rank": null,
+        "hit_at": {
+          "1": false,
+          "3": false,
+          "5": false
+        },
+        "all_refs_at_5": null,
+        "unresolved_ids": [],
+        "top5": [
+          {
+            "source_ref": "speakers.json#SP-018",
+            "score": 0.6408
+          },
+          {
+            "source_ref": "speakers.json#SP-005",
+            "score": 0.635
+          },
+          {
+            "source_ref": "speakers.json#SP-009",
+            "score": 0.6341
+          },
+          {
+            "source_ref": "speakers.json#SP-015",
+            "score": 0.6326
+          },
+          {
+            "source_ref": "speakers.json#SP-011",
+            "score": 0.6318
+          }
+        ]
+      },
+      {
+        "id": "G-013",
+        "question": "Which organisation does the speaker presenting session S-001 work for?",
+        "answer_type": "cross_doc",
+        "source_refs": [
+          "sessions.csv#S-001",
+          "speakers.json#SP-020"
+        ],
+        "rank": 1,
+        "hit_at": {
+          "1": true,
+          "3": true,
+          "5": true
+        },
+        "all_refs_at_5": false,
+        "unresolved_ids": [],
+        "top5": [
+          {
+            "source_ref": "sessions.csv#S-001",
+            "score": 0.7581
+          },
+          {
+            "source_ref": "sessions.csv#S-030",
+            "score": 0.6979
+          },
+          {
+            "source_ref": "sessions.csv#S-035",
+            "score": 0.6968
+          },
+          {
+            "source_ref": "sessions.csv#S-032",
+            "score": 0.6949
+          },
+          {
+            "source_ref": "sessions.csv#S-010",
+            "score": 0.689
+          }
+        ]
+      },
+      {
+        "id": "G-014",
+        "question": "Is the room used for session S-004 wheelchair accessible?",
+        "answer_type": "cross_doc",
+        "source_refs": [
+          "sessions.csv#S-004",
+          "venue_guide.pdf#rooms"
+        ],
+        "rank": 1,
+        "hit_at": {
+          "1": true,
+          "3": true,
+          "5": true
+        },
+        "all_refs_at_5": false,
+        "unresolved_ids": [],
+        "top5": [
+          {
+            "source_ref": "venue_guide.pdf#rooms:R-06",
+            "score": 0.7882
+          },
+          {
+            "source_ref": "venue_guide.pdf#rooms:R-03",
+            "score": 0.7851
+          },
+          {
+            "source_ref": "venue_guide.pdf#rooms:R-02",
+            "score": 0.7797
+          },
+          {
+            "source_ref": "venue_guide.pdf#rooms:R-04",
+            "score": 0.7763
+          },
+          {
+            "source_ref": "venue_guide.pdf#rooms:R-01",
+            "score": 0.7742
+          }
+        ]
+      },
+      {
+        "id": "G-015",
+        "question": "Who are the co-speakers for session S-026, and what are their organisations?",
+        "answer_type": "cross_doc",
+        "source_refs": [
+          "sessions.csv#S-026",
+          "speakers.json#SP-004",
+          "speakers.json#SP-019"
+        ],
+        "rank": 1,
+        "hit_at": {
+          "1": true,
+          "3": true,
+          "5": true
+        },
+        "all_refs_at_5": false,
+        "unresolved_ids": [],
+        "top5": [
+          {
+            "source_ref": "sessions.csv#S-026",
+            "score": 0.6906
+          },
+          {
+            "source_ref": "sessions.csv#S-029",
+            "score": 0.6854
+          },
+          {
+            "source_ref": "sessions.csv#S-023",
+            "score": 0.6812
+          },
+          {
+            "source_ref": "sessions.csv#S-021",
+            "score": 0.6809
+          },
+          {
+            "source_ref": "sessions.csv#S-032",
+            "score": 0.6729
+          }
+        ]
+      },
+      {
+        "id": "G-017",
+        "question": "Does the room hosting the cancelled session S-015 have a hearing loop?",
+        "answer_type": "cross_doc",
+        "source_refs": [
+          "sessions.csv#S-015",
+          "venue_guide.pdf#rooms"
+        ],
+        "rank": 1,
+        "hit_at": {
+          "1": true,
+          "3": true,
+          "5": true
+        },
+        "all_refs_at_5": true,
+        "unresolved_ids": [],
+        "top5": [
+          {
+            "source_ref": "sessions.csv#S-015",
+            "score": 0.7414
+          },
+          {
+            "source_ref": "sessions.csv#S-038",
+            "score": 0.6811
+          },
+          {
+            "source_ref": "venue_guide.pdf#tickets:Virtual",
+            "score": 0.6744
+          },
+          {
+            "source_ref": "venue_guide.pdf#rooms:R-01",
+            "score": 0.6694
+          },
+          {
+            "source_ref": "sessions.csv#S-014",
+            "score": 0.6685
+          }
+        ]
+      },
+      {
+        "id": "G-018",
+        "question": "What is the venue's catering cut-off policy?",
+        "answer_type": "policy",
+        "source_refs": [
+          "venue_guide.pdf#policies"
+        ],
+        "rank": 1,
+        "hit_at": {
+          "1": true,
+          "3": true,
+          "5": true
+        },
+        "all_refs_at_5": null,
+        "unresolved_ids": [],
+        "top5": [
+          {
+            "source_ref": "venue_guide.pdf#policies:Catering cut-off",
+            "score": 0.801
+          },
+          {
+            "source_ref": "venue_guide.pdf#policies",
+            "score": 0.7871
+          },
+          {
+            "source_ref": "venue_guide.pdf#tickets:VIP",
+            "score": 0.6588
+          },
+          {
+            "source_ref": "venue_guide.pdf#tickets:Standard",
+            "score": 0.6537
+          },
+          {
+            "source_ref": "venue_guide.pdf#tickets:Student",
+            "score": 0.6426
+          }
+        ]
+      },
+      {
+        "id": "G-019",
+        "question": "What is the recording consent policy at the Atlas AI Summit?",
+        "answer_type": "policy",
+        "source_refs": [
+          "venue_guide.pdf#policies"
+        ],
+        "rank": 1,
+        "hit_at": {
+          "1": true,
+          "3": true,
+          "5": true
+        },
+        "all_refs_at_5": null,
+        "unresolved_ids": [],
+        "top5": [
+          {
+            "source_ref": "venue_guide.pdf#policies:Recording consent",
+            "score": 0.7566
+          },
+          {
+            "source_ref": "sessions.csv#S-014",
+            "score": 0.7047
+          },
+          {
+            "source_ref": "sessions.csv#S-032",
+            "score": 0.6673
+          },
+          {
+            "source_ref": "sessions.csv#S-005",
+            "score": 0.6646
+          },
+          {
+            "source_ref": "sessions.csv#S-027",
+            "score": 0.6598
+          }
+        ]
+      },
+      {
+        "id": "G-020",
+        "question": "What happens if an attendee loses their conference badge?",
+        "answer_type": "policy",
+        "source_refs": [
+          "venue_guide.pdf#policies"
+        ],
+        "rank": 1,
+        "hit_at": {
+          "1": true,
+          "3": true,
+          "5": true
+        },
+        "all_refs_at_5": null,
+        "unresolved_ids": [],
+        "top5": [
+          {
+            "source_ref": "venue_guide.pdf#policies:Badge rules",
+            "score": 0.7705
+          },
+          {
+            "source_ref": "venue_guide.pdf#tickets:Student",
+            "score": 0.6574
+          },
+          {
+            "source_ref": "venue_guide.pdf#tickets:VIP",
+            "score": 0.6385
+          },
+          {
+            "source_ref": "venue_guide.pdf#tickets:Standard",
+            "score": 0.6347
+          },
+          {
+            "source_ref": "venue_guide.pdf#policies",
+            "score": 0.5813
+          }
+        ]
+      },
+      {
+        "id": "G-021",
+        "question": "What is the policy for attendees who arrive late to a session?",
+        "answer_type": "policy",
+        "source_refs": [
+          "venue_guide.pdf#policies"
+        ],
+        "rank": 1,
+        "hit_at": {
+          "1": true,
+          "3": true,
+          "5": true
+        },
+        "all_refs_at_5": null,
+        "unresolved_ids": [],
+        "top5": [
+          {
+            "source_ref": "venue_guide.pdf#policies:Late arrival",
+            "score": 0.8788
+          },
+          {
+            "source_ref": "venue_guide.pdf#policies",
+            "score": 0.6968
+          },
+          {
+            "source_ref": "venue_guide.pdf#policies:Recording consent",
+            "score": 0.6913
+          },
+          {
+            "source_ref": "venue_guide.pdf#tickets:Student",
+            "score": 0.6782
+          },
+          {
+            "source_ref": "venue_guide.pdf#tickets:Standard",
+            "score": 0.6751
+          }
+        ]
+      },
+      {
+        "id": "G-026",
+        "question": "Which talk covers how to keep user data confidential when crafting inputs for a language model?",
+        "answer_type": "semantic",
+        "source_refs": [
+          "sessions.csv#S-010"
+        ],
+        "rank": 1,
+        "hit_at": {
+          "1": true,
+          "3": true,
+          "5": true
+        },
+        "all_refs_at_5": null,
+        "unresolved_ids": [],
+        "top5": [
+          {
+            "source_ref": "sessions.csv#S-010",
+            "score": 0.737
+          },
+          {
+            "source_ref": "sessions.csv#S-040",
+            "score": 0.7296
+          },
+          {
+            "source_ref": "sessions.csv#S-026",
+            "score": 0.7173
+          },
+          {
+            "source_ref": "sessions.csv#S-030",
+            "score": 0.7161
+          },
+          {
+            "source_ref": "sessions.csv#S-023",
+            "score": 0.6897
+          }
+        ]
+      },
+      {
+        "id": "G-027",
+        "question": "Which session discusses making a language model's made-up answers less common by anchoring its output in real source material?",
+        "answer_type": "semantic",
+        "source_refs": [
+          "sessions.csv#S-038"
+        ],
+        "rank": null,
+        "hit_at": {
+          "1": false,
+          "3": false,
+          "5": false
+        },
+        "all_refs_at_5": null,
+        "unresolved_ids": [],
+        "top5": [
+          {
+            "source_ref": "sessions.csv#S-032",
+            "score": 0.7148
+          },
+          {
+            "source_ref": "sessions.csv#S-023",
+            "score": 0.7061
+          },
+          {
+            "source_ref": "sessions.csv#S-004",
+            "score": 0.701
+          },
+          {
+            "source_ref": "sessions.csv#S-007",
+            "score": 0.701
+          },
+          {
+            "source_ref": "sessions.csv#S-017",
+            "score": 0.6956
+          }
+        ]
+      },
+      {
+        "id": "G-028",
+        "question": "Which talk addresses defending AI systems that call external tools from attackers sneaking malicious instructions into their inputs?",
+        "answer_type": "semantic",
+        "source_refs": [
+          "sessions.csv#S-039"
+        ],
+        "rank": 1,
+        "hit_at": {
+          "1": true,
+          "3": true,
+          "5": true
+        },
+        "all_refs_at_5": null,
+        "unresolved_ids": [],
+        "top5": [
+          {
+            "source_ref": "sessions.csv#S-039",
+            "score": 0.7435
+          },
+          {
+            "source_ref": "sessions.csv#S-014",
+            "score": 0.7055
+          },
+          {
+            "source_ref": "sessions.csv#S-034",
+            "score": 0.702
+          },
+          {
+            "source_ref": "sessions.csv#S-029",
+            "score": 0.7019
+          },
+          {
+            "source_ref": "sessions.csv#S-037",
+            "score": 0.6997
+          }
+        ]
+      },
+      {
+        "id": "G-029",
+        "question": "Which session is about keeping spending in check when running language models live for users?",
+        "answer_type": "semantic",
+        "source_refs": [
+          "sessions.csv#S-024"
+        ],
+        "rank": null,
+        "hit_at": {
+          "1": false,
+          "3": false,
+          "5": false
+        },
+        "all_refs_at_5": null,
+        "unresolved_ids": [],
+        "top5": [
+          {
+            "source_ref": "sessions.csv#S-019",
+            "score": 0.6847
+          },
+          {
+            "source_ref": "sessions.csv#S-011",
+            "score": 0.6833
+          },
+          {
+            "source_ref": "sessions.csv#S-009",
+            "score": 0.6793
+          },
+          {
+            "source_ref": "sessions.csv#S-030",
+            "score": 0.6743
+          },
+          {
+            "source_ref": "sessions.csv#S-017",
+            "score": 0.6725
+          }
+        ]
+      },
+      {
+        "id": "G-030",
+        "question": "Which talk explores forecasting how much a farm's crops will produce?",
+        "answer_type": "semantic",
+        "source_refs": [
+          "sessions.csv#S-031"
+        ],
+        "rank": 1,
+        "hit_at": {
+          "1": true,
+          "3": true,
+          "5": true
+        },
+        "all_refs_at_5": null,
+        "unresolved_ids": [],
+        "top5": [
+          {
+            "source_ref": "sessions.csv#S-031",
+            "score": 0.735
+          },
+          {
+            "source_ref": "sessions.csv#S-024",
+            "score": 0.6562
+          },
+          {
+            "source_ref": "speakers.json#SP-008",
+            "score": 0.6265
+          },
+          {
+            "source_ref": "sessions.csv#S-028",
+            "score": 0.6259
+          },
+          {
+            "source_ref": "sessions.csv#S-021",
+            "score": 0.6185
+          }
+        ]
+      }
+    ],
+    "query_latency_ms": {
+      "p50": 7.19,
+      "p95": 8.61
+    }
+  }
+}

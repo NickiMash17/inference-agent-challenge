@@ -1,5 +1,5 @@
 {
-  "kb_version": "1.0.0",
+  "kb_version": "1.0.2",
   "generator_seed": 42,
   "files": {
     "sessions.csv": {
@@ -12,7 +12,10 @@
       "sha256": "484a83683df671e8277a1d0340596851fae09ada4dcbcb1952e91ff90c3fcba7"
     },
     "kb_gold.jsonl": {
-      "sha256": "ab00c6fbc75bfad7738721abc66db606cc525fd16bddb4d360796d3013711ce8"
+      "sha256": "d7967a90e1242cad23b97992b0799bdf1a77274a76dc74f443a1586b29d0f196"
+    },
+    "kb_heldout.jsonl": {
+      "sha256": "505fe8a11fb2bd9cf3123e632e8bd09867c1a661357b7ee7d132a00b05f3e64a"
     }
   }
 }

@@ -39,6 +39,11 @@ def _read_gold(evals_dir: Path = EVALS_DIR) -> list[dict]:
         return [json.loads(line) for line in f if line.strip()]
 
 
+def _read_heldout(evals_dir: Path = EVALS_DIR) -> list[dict]:
+    with (evals_dir / "kb_heldout.jsonl").open(encoding="utf-8") as f:
+        return [json.loads(line) for line in f if line.strip()]
+
+
 @pytest.fixture(scope="module")
 def sessions() -> list[dict]:
     return _read_sessions()
@@ -54,12 +59,18 @@ def gold() -> list[dict]:
     return _read_gold()
 
 
+@pytest.fixture(scope="module")
+def heldout() -> list[dict]:
+    return _read_heldout()
+
+
 def test_kb_files_exist():
     assert (KB_DIR / "sessions.csv").exists()
     assert (KB_DIR / "speakers.json").exists()
     assert (KB_DIR / "venue_guide.pdf").exists()
     assert (KB_DIR / "manifest.json").exists()
     assert (EVALS_DIR / "kb_gold.jsonl").exists()
+    assert (EVALS_DIR / "kb_heldout.jsonl").exists()
 
 
 def test_foreign_keys_resolve(sessions, speakers):
@@ -129,6 +140,11 @@ def test_generator_is_deterministic(tmp_path):
         hash_b = hashlib.sha256((kb_b / name).read_bytes()).hexdigest()
         assert hash_a == hash_b, f"{name} is not byte-identical across runs"
 
+    for name in ("kb_gold.jsonl", "kb_heldout.jsonl"):
+        hash_a = hashlib.sha256((evals_a / name).read_bytes()).hexdigest()
+        hash_b = hashlib.sha256((evals_b / name).read_bytes()).hexdigest()
+        assert hash_a == hash_b, f"{name} is not byte-identical across runs"
+
 
 def test_gold_source_refs_resolve(sessions, speakers, gold):
     session_ids = {s["session_id"] for s in sessions}
@@ -150,10 +166,13 @@ def test_gold_source_refs_resolve(sessions, speakers, gold):
 
 
 def test_gold_set_coverage(gold):
+    # G-016 was relabelled cross_doc -> aggregation in kb_version 1.0.1 (it's
+    # fundamentally a COUNT+GROUP BY+JOIN query, not a simple two-hop
+    # lookup), so aggregation's floor moved up and cross_doc's moved down.
     counts = Counter(item["answer_type"] for item in gold)
-    assert counts["aggregation"] >= 6
+    assert counts["aggregation"] >= 7
     assert counts["lookup"] >= 6
-    assert counts["cross_doc"] >= 5
+    assert counts["cross_doc"] >= 4
     assert counts["policy"] >= 4
     assert counts["negative"] >= 3
     assert counts["semantic"] >= 5
@@ -377,6 +396,7 @@ def test_manifest_hashes_match_files():
         "speakers.json": KB_DIR / "speakers.json",
         "venue_guide.pdf": KB_DIR / "venue_guide.pdf",
         "kb_gold.jsonl": EVALS_DIR / "kb_gold.jsonl",
+        "kb_heldout.jsonl": EVALS_DIR / "kb_heldout.jsonl",
     }
     for name, path in file_paths.items():
         expected = manifest["files"][name]["sha256"]
@@ -384,3 +404,39 @@ def test_manifest_hashes_match_files():
         assert actual == expected, (
             f"{name} does not match manifest.json - bump kb_version and regenerate"
         )
+
+
+def test_heldout_set_shape_and_disjointness_from_gold(gold, heldout):
+    assert len(heldout) == 15
+    counts = Counter(item["answer_type"] for item in heldout)
+    assert counts == {
+        "lookup": 3,
+        "aggregation": 3,
+        "cross_doc": 3,
+        "policy": 2,
+        "semantic": 2,
+        "negative": 2,
+    }
+
+    gold_questions = {item["question"] for item in gold}
+    heldout_questions = {item["question"] for item in heldout}
+    assert gold_questions.isdisjoint(heldout_questions), "held-out item repeats a gold question"
+
+    def is_row_ref(ref: str) -> bool:
+        # Row-specific refs must not repeat between gold and held-out.
+        # Bare filenames ("sessions.csv") and PDF table-level refs
+        # ("venue_guide.pdf#policies", no row key) are whole-table
+        # references, not one specific fact, so they're expected to appear
+        # in both sets.
+        if "#" not in ref:
+            return False
+        file_name, anchor = ref.split("#", 1)
+        if file_name == "venue_guide.pdf":
+            return ":" in anchor
+        return True
+
+    gold_refs = {ref for item in gold for ref in item["source_refs"] if is_row_ref(ref)}
+    heldout_refs = {ref for item in heldout for ref in item["source_refs"] if is_row_ref(ref)}
+    assert gold_refs.isdisjoint(heldout_refs), "held-out item reuses a gold row-level source_ref"
+
+    assert all(item["id"].startswith("H-") for item in heldout)

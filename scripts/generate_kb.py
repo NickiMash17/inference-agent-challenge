@@ -42,7 +42,7 @@ SEED = 42
 #: README "Knowledge base > Conventions"). manifest.json pins the data to
 #: this version via per-file hashes, so a content change without a version
 #: bump is caught by tests/test_kb.py::test_manifest_hashes_match_files.
-KB_VERSION = "1.0.0"
+KB_VERSION = "1.0.2"
 
 ROOT = Path(__file__).resolve().parent.parent
 KB_DIR = ROOT / "data" / "kb"
@@ -800,6 +800,25 @@ SEMANTIC_QUESTIONS = [
     ),
 ]
 
+#: Same idea as SEMANTIC_QUESTIONS, but targeting two different session
+#: titles entirely, reserved for the held-out set (see generate_heldout).
+#: Reset after kb_version 1.0.2 (see CHANGELOG.md): the 1.0.1 held-out set
+#: was accidentally evaluated once during development and was retired
+#: without informing any tuning decision. These two titles were not used by
+#: either SEMANTIC_QUESTIONS or the retired 1.0.1 held-out set.
+HELDOUT_SEMANTIC_QUESTIONS = [
+    (
+        "Vector Databases: A Practical Comparison",
+        "Which talk evaluates several storage systems for embeddings and "
+        "weighs how they perform in real deployments?",
+    ),
+    (
+        "Monitoring Model Drift in the Wild",
+        "Which session covers watching for a deployed AI system's "
+        "behaviour gradually changing after release?",
+    ),
+]
+
 
 def generate_gold(
     sessions: list[dict], speakers: list[dict], sessions_csv_path: Path
@@ -1007,7 +1026,7 @@ def generate_gold(
         f"{top_speaker_id} ({top_speaker['full_name']}, {top_speaker['job_title']}) with "
         f"{max_count} sessions.",
         top_speaker_id,
-        "cross_doc",
+        "aggregation",
         [f"speakers.json#{top_speaker_id}", "sessions.csv"],
     )
 
@@ -1097,6 +1116,202 @@ def generate_gold(
     return items
 
 
+#: The kb_version 1.0.1 held-out set's exact source_refs, retired after it
+#: was accidentally evaluated once during development (see CHANGELOG.md).
+#: Excluded here too, so the reset set shares no entity with either the
+#: gold set or the retired set.
+RETIRED_HELDOUT_SESSION_IDS = {"S-002", "S-003", "S-005", "S-006", "S-007", "S-033"}
+RETIRED_HELDOUT_SPEAKER_IDS = {"SP-003", "SP-018"}
+
+
+def generate_heldout(
+    sessions: list[dict],
+    speakers: list[dict],
+    sessions_csv_path: Path,
+    used_refs: set[str],
+) -> list[dict]:
+    """~15 fresh items held out from evals/kb_gold.jsonl: computed from the
+    same frozen data, but none of them paraphrase an existing gold item, and
+    none reuse an entity from the retired kb_version 1.0.1 held-out set
+    either (see RETIRED_HELDOUT_SESSION_IDS/SPEAKER_IDS). Evaluated once, at
+    submission time (see README "Evaluation")."""
+    df = pd.read_csv(sessions_csv_path, keep_default_na=False)
+    df_going = df[df["status"] != "Cancelled"]
+
+    speakers_by_id = {sp["speaker_id"]: sp for sp in speakers}
+    rooms_by_id = {r["room_id"]: r for r in ROOMS}
+    title_to_session = {s["title"]: s for s in sessions}
+    policy_map = {p["policy"]: p["rule"] for p in KEY_POLICIES}
+
+    used_session_ids = {
+        ref.split("#", 1)[1] for ref in used_refs if ref.startswith("sessions.csv#")
+    } | RETIRED_HELDOUT_SESSION_IDS
+    used_speaker_ids = {
+        ref.split("#", 1)[1] for ref in used_refs if ref.startswith("speakers.json#")
+    } | RETIRED_HELDOUT_SPEAKER_IDS
+    unused_sessions = [s for s in sessions if s["session_id"] not in used_session_ids]
+    unused_speakers = [sp for sp in speakers if sp["speaker_id"] not in used_speaker_ids]
+
+    items: list[dict] = []
+
+    def add(question: str, answer: str, value: object, answer_type: str, refs: list[str]) -> None:
+        items.append(
+            {
+                "id": f"H-{len(items) + 1:03d}",
+                "question": question,
+                "expected_answer": answer,
+                "expected_value": value,
+                "answer_type": answer_type,
+                "source_refs": refs,
+            }
+        )
+
+    # --- lookup (3) ---
+    s_title = unused_sessions[0]
+    add(
+        f"What is the title of session {s_title['session_id']}?",
+        s_title["title"],
+        s_title["title"],
+        "lookup",
+        [f"sessions.csv#{s_title['session_id']}"],
+    )
+
+    s_room = unused_sessions[1]
+    room = rooms_by_id[s_room["room_id"]]
+    add(
+        f"Which room is session {s_room['session_id']} held in?",
+        f"{room['name']} ({s_room['room_id']})",
+        s_room["room_id"],
+        "lookup",
+        [f"sessions.csv#{s_room['session_id']}"],
+    )
+
+    sp_org = unused_speakers[0]
+    add(
+        f"What organisation is speaker {sp_org['speaker_id']} affiliated with?",
+        sp_org["organisation"],
+        sp_org["organisation"],
+        "lookup",
+        [f"speakers.json#{sp_org['speaker_id']}"],
+    )
+
+    # --- aggregation (3): fresh dimensions (not Day/Safety-track/top-speaker,
+    # and not Day2/Agents-track/Beginner-level from the retired set) ---
+    mlops_count = int((df_going["track"] == "MLOps").sum())
+    add(
+        "How many sessions in the MLOps track are going ahead?",
+        str(mlops_count),
+        mlops_count,
+        "aggregation",
+        ["sessions.csv"],
+    )
+
+    advanced_count = int((df_going["level"] == "Advanced").sum())
+    add(
+        "How many Advanced-level sessions are going ahead?",
+        str(advanced_count),
+        advanced_count,
+        "aggregation",
+        ["sessions.csv"],
+    )
+
+    rag_avg_capacity = round(float(df_going.loc[df_going["track"] == "RAG", "capacity"].mean()), 1)
+    add(
+        "What is the average capacity of RAG track sessions that are going ahead, "
+        "rounded to 1 decimal place?",
+        str(rag_avg_capacity),
+        rag_avg_capacity,
+        "aggregation",
+        ["sessions.csv"],
+    )
+
+    # --- cross_doc (3) ---
+    s_cd1 = unused_sessions[2]
+    speaker_cd1 = speakers_by_id[s_cd1["speaker_ids"].split(";")[0]]
+    add(
+        f"Which organisation does the speaker presenting session {s_cd1['session_id']} work for?",
+        speaker_cd1["organisation"],
+        speaker_cd1["organisation"],
+        "cross_doc",
+        [f"sessions.csv#{s_cd1['session_id']}", f"speakers.json#{speaker_cd1['speaker_id']}"],
+    )
+
+    s_cd2 = unused_sessions[3]
+    room_cd2 = rooms_by_id[s_cd2["room_id"]]
+    add(
+        f"Is the room used for session {s_cd2['session_id']} wheelchair accessible?",
+        f"{room_cd2['wheelchair_accessible']} ({room_cd2['name']}).",
+        room_cd2["wheelchair_accessible"],
+        "cross_doc",
+        [f"sessions.csv#{s_cd2['session_id']}", "venue_guide.pdf#rooms"],
+    )
+
+    s_cd3 = unused_sessions[4]
+    room_cd3 = rooms_by_id[s_cd3["room_id"]]
+    add(
+        f"Does the room hosting session {s_cd3['session_id']} have a hearing loop?",
+        f"{room_cd3['hearing_loop']} ({room_cd3['name']}).",
+        room_cd3["hearing_loop"],
+        "cross_doc",
+        [f"sessions.csv#{s_cd3['session_id']}", "venue_guide.pdf#rooms"],
+    )
+
+    # --- policy (2): fresh extracted sub-facts (not catering-time/badge-fee
+    # from the retired set), not a reworded "what is policy X" ---
+    late_rule = policy_map["Late arrival"]
+    minutes = re.search(r"more than (\d+) minutes", late_rule)
+    assert minutes, "late arrival policy text no longer matches the expected format"
+    add(
+        "How many minutes after a session's start time might a late attendee be "
+        "asked to wait for a break before entering?",
+        minutes.group(1),
+        int(minutes.group(1)),
+        "policy",
+        ["venue_guide.pdf#policies"],
+    )
+
+    consent_rule = policy_map["Recording consent"]
+    seating = re.search(r"must sit in (.+?)\.", consent_rule)
+    assert seating, "recording consent policy text no longer matches the expected format"
+    add(
+        "Where must an attendee who doesn't want to be recorded sit?",
+        seating.group(1),
+        seating.group(1),
+        "policy",
+        ["venue_guide.pdf#policies"],
+    )
+
+    # --- semantic (2): two session titles not covered by SEMANTIC_QUESTIONS
+    # or the retired held-out set ---
+    for title, question in HELDOUT_SEMANTIC_QUESTIONS:
+        session = title_to_session[title]
+        add(
+            question,
+            f"{session['session_id']} ({session['title']})",
+            session["session_id"],
+            "semantic",
+            [f"sessions.csv#{session['session_id']}"],
+        )
+
+    # --- negative (2) ---
+    add(
+        "Is there a cloakroom for luggage storage at the venue?",
+        "Not in the knowledge base.",
+        "NOT_IN_KB",
+        "negative",
+        [],
+    )
+    add(
+        f"What is the {CONFERENCE_NAME}'s carbon offset program?",
+        "Not in the knowledge base.",
+        "NOT_IN_KB",
+        "negative",
+        [],
+    )
+
+    return items
+
+
 def write_gold_jsonl(items: list[dict], path: Path) -> None:
     with path.open("w", encoding="utf-8") as f:
         for item in items:
@@ -1155,6 +1370,11 @@ def generate(kb_dir: Path, evals_dir: Path, seed: int = SEED) -> dict:
     gold_jsonl_path = evals_dir / "kb_gold.jsonl"
     write_gold_jsonl(gold_items, gold_jsonl_path)
 
+    used_refs = {ref for item in gold_items for ref in item["source_refs"]}
+    heldout_items = generate_heldout(sessions, speakers, sessions_csv_path, used_refs)
+    heldout_jsonl_path = evals_dir / "kb_heldout.jsonl"
+    write_gold_jsonl(heldout_items, heldout_jsonl_path)
+
     write_manifest(
         kb_dir / "manifest.json",
         kb_version=KB_VERSION,
@@ -1164,6 +1384,7 @@ def generate(kb_dir: Path, evals_dir: Path, seed: int = SEED) -> dict:
             "speakers.json": speakers_json_path,
             "venue_guide.pdf": venue_pdf_path,
             "kb_gold.jsonl": gold_jsonl_path,
+            "kb_heldout.jsonl": heldout_jsonl_path,
         },
     )
 
@@ -1171,6 +1392,7 @@ def generate(kb_dir: Path, evals_dir: Path, seed: int = SEED) -> dict:
         "sessions": len(sessions),
         "speakers": len(speakers),
         "gold_items": len(gold_items),
+        "heldout_items": len(heldout_items),
     }
 
 
@@ -1178,7 +1400,7 @@ def main() -> None:
     summary = generate(KB_DIR, EVALS_DIR, SEED)
     print(
         f"Generated {summary['sessions']} sessions, {summary['speakers']} speakers, "
-        f"{summary['gold_items']} gold items."
+        f"{summary['gold_items']} gold items, {summary['heldout_items']} held-out items."
     )
 
 

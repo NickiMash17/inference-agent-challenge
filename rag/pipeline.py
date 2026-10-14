@@ -5,6 +5,7 @@ to one row of evals/ABLATION.md; v1-v5 build cumulatively on v0_baseline."""
 from __future__ import annotations
 
 import re
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -67,6 +68,10 @@ class RetrievalConfig:
     fk_expansion: bool = False
     rerank: bool = False
     rerank_pool: int = 20
+    id_pinning: bool = False
+    #: Diagnostic-only: bypasses BM25/fusion entirely and searches the
+    #: vector index alone (used for the vector-only ablation rows).
+    vector_only: bool = False
 
     def __post_init__(self) -> None:
         for weights in (self.id_weights, self.text_weights):
@@ -96,6 +101,24 @@ CONFIGS: dict[str, RetrievalConfig] = {
         title_vectors=True,
         fk_expansion=True,
         rerank=True,
+    ),
+    # On top of v4 (not v5 - id_pinning and the cross-encoder are two
+    # independent answers to the same "exact ID" problem; v6 isolates the
+    # cheaper, deterministic one).
+    "v6_id_pinning": RetrievalConfig(
+        name="v6_id_pinning",
+        remove_stopwords=True,
+        weighted_rrf=True,
+        title_vectors=True,
+        fk_expansion=True,
+        id_pinning=True,
+    ),
+    # Diagnostic-only rows (not part of the v0->v6 progression): isolate
+    # the vector index alone, to show where hybrid fusion helps or hurts
+    # relative to vector search by itself.
+    "v0_vector_only": RetrievalConfig(name="v0_vector_only", vector_only=True),
+    "v3_vector_only": RetrievalConfig(
+        name="v3_vector_only", title_vectors=True, vector_only=True
     ),
 }
 
@@ -131,6 +154,79 @@ class WeightedHybridRetriever:
 
         ranked_ids = sorted(scores, key=lambda cid: -scores[cid])[:k]
         return [(chunk_by_id[cid], scores[cid]) for cid in ranked_ids]
+
+
+# --- v6: exact-ID pinning -----------------------------------------------------
+
+#: Same shapes as ID_PATTERN, but captured individually so each match's
+#: exact ID text (and its order of appearance in the query) is available.
+_ID_TOKEN_RE = re.compile(r"\b(S-\d{3}|SP-\d{3}|R-\d{2})\b", re.IGNORECASE)
+
+
+def find_ids_in_order(query: str) -> list[str]:
+    """IDs mentioned in the query, upper-cased, in first-appearance order,
+    without duplicates (a repeated mention doesn't pin the same chunk twice)."""
+    seen: list[str] = []
+    for match in _ID_TOKEN_RE.finditer(query):
+        id_str = match.group(1).upper()
+        if id_str not in seen:
+            seen.append(id_str)
+    return seen
+
+
+def id_to_source_ref(id_str: str) -> str | None:
+    """Maps an ID string to the source_ref of the chunk it exactly
+    identifies, or None if the ID doesn't match a known format."""
+    if re.fullmatch(r"SP-\d{3}", id_str):
+        return f"speakers.json#{id_str}"
+    if re.fullmatch(r"S-\d{3}", id_str):
+        return f"sessions.csv#{id_str}"
+    if re.fullmatch(r"R-\d{2}", id_str):
+        return f"venue_guide.pdf#rooms:{id_str}"
+    return None
+
+
+class IdPinningRetriever:
+    """Wraps another retriever: any ID mentioned in the query (S-009,
+    SP-001, R-04) is resolved by exact metadata lookup and pinned at the
+    top of the results, in order of appearance, ahead of anything fusion
+    would have ranked. Remaining slots are filled from the wrapped
+    retriever's results, deduplicated against the pinned chunks. An ID that
+    doesn't resolve to a real chunk (e.g. S-999) never crashes the search —
+    it's simply recorded in `last_unresolved_ids` for the caller to inspect."""
+
+    def __init__(self, inner, chunk_by_ref: dict[str, Chunk]) -> None:
+        self.inner = inner
+        self.chunk_by_ref = chunk_by_ref
+        self.last_unresolved_ids: list[str] = []
+
+    def search(self, query: str, k: int) -> list[tuple[Chunk, float]]:
+        pinned: list[Chunk] = []
+        unresolved: list[str] = []
+        seen_ids: set[str] = set()
+
+        for id_str in find_ids_in_order(query):
+            ref = id_to_source_ref(id_str)
+            chunk = self.chunk_by_ref.get(ref) if ref else None
+            if chunk is None:
+                unresolved.append(id_str)
+                continue
+            pinned.append(chunk)
+            seen_ids.add(chunk.chunk_id)
+
+        self.last_unresolved_ids = unresolved
+
+        results: list[tuple[Chunk, float]] = [(c, 1.0) for c in pinned]
+        if len(results) < k:
+            for chunk, score in self.inner.search(query, k=k + len(pinned)):
+                if len(results) >= k:
+                    break
+                if chunk.chunk_id in seen_ids:
+                    continue
+                seen_ids.add(chunk.chunk_id)
+                results.append((chunk, score))
+
+        return results[:k]
 
 
 # --- v3: multi-representation vectors ---------------------------------------
@@ -315,6 +411,7 @@ class Pipeline:
         self.chunks = chunks
         self.chunk_by_ref = {c.source_ref: c for c in chunks}
         self.rerank_latencies: list[float] = []
+        self.query_latencies: list[float] = []
 
         tokenizer = tokenize_no_stopwords if config.remove_stopwords else tokenize
         self.bm25 = BM25Index(tokenizer=tokenizer)
@@ -328,15 +425,27 @@ class Pipeline:
         )
         self.vector.add(chunks)
 
-        self.retriever = (
-            WeightedHybridRetriever(self.bm25, self.vector, config)
-            if config.weighted_rrf
-            else HybridRetriever(self.bm25, self.vector, rrf_k=config.rrf_k)
-        )
+        if config.vector_only:
+            self.retriever = self.vector
+        else:
+            fused = (
+                WeightedHybridRetriever(self.bm25, self.vector, config)
+                if config.weighted_rrf
+                else HybridRetriever(self.bm25, self.vector, rrf_k=config.rrf_k)
+            )
+            self.retriever = (
+                IdPinningRetriever(fused, self.chunk_by_ref) if config.id_pinning else fused
+            )
 
         self.reranker = CrossEncoderReranker() if config.rerank else None
 
+    @property
+    def last_unresolved_ids(self) -> list[str]:
+        return getattr(self.retriever, "last_unresolved_ids", [])
+
     def search(self, query: str, k: int) -> list[RetrievedItem]:
+        t_start = time.perf_counter()
+
         pool_k = self.config.rerank_pool if self.reranker else k
         raw = self.retriever.search(query, pool_k)
         items = [
@@ -345,8 +454,6 @@ class Pipeline:
         ]
 
         if self.reranker is not None:
-            import time
-
             t0 = time.perf_counter()
             items = self.reranker.rerank(query, items, top_k=k)
             self.rerank_latencies.append(time.perf_counter() - t0)
@@ -354,4 +461,5 @@ class Pipeline:
         if self.config.fk_expansion:
             items = expand_with_foreign_keys(items, self.chunk_by_ref)
 
+        self.query_latencies.append(time.perf_counter() - t_start)
         return items

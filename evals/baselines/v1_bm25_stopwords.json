@@ -1,19 +1,20 @@
 {
   "config": "v1_bm25_stopwords",
-  "kb_version": "1.0.0",
+  "gold_set": "kb_gold.jsonl",
+  "kb_version": "1.0.1",
   "embedding_model": "BAAI/bge-small-en-v1.5",
-  "git_commit_sha": "a9a0d6e4945999ec029bb4dc64455c285918a5ff",
-  "timestamp": "20261013T121244Z",
+  "git_commit_sha": "85192988c4278ea4b2843b573c78e184af06904d",
+  "timestamp": "20261013T202035Z",
   "chunk_count": 82,
-  "gold_item_count": 20,
+  "gold_item_count": 19,
   "result": {
     "retriever": "v1_bm25_stopwords",
     "overall": {
-      "n": 20,
-      "recall@1": 0.55,
-      "recall@3": 0.7,
-      "recall@5": 0.7,
-      "mrr": 0.625
+      "n": 19,
+      "recall@1": 0.579,
+      "recall@3": 0.737,
+      "recall@5": 0.737,
+      "mrr": 0.658
     },
     "by_answer_type": {
       "lookup": {
@@ -31,12 +32,12 @@
         "mrr": 0.0
       },
       "cross_doc": {
-        "n": 5,
-        "recall@1": 0.8,
-        "recall@3": 0.8,
-        "recall@5": 0.8,
-        "mrr": 0.8,
-        "all_refs@5": 0.2
+        "n": 4,
+        "recall@1": 1.0,
+        "recall@3": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "all_refs@5": 0.25
       },
       "policy": {
         "n": 4,
@@ -61,6 +62,7 @@
           "5": true
         },
         "all_refs_at_5": null,
+        "unresolved_ids": [],
         "top5": [
           {
             "source_ref": "sessions.csv#S-001",
@@ -98,6 +100,7 @@
           "5": true
         },
         "all_refs_at_5": null,
+        "unresolved_ids": [],
         "top5": [
           {
             "source_ref": "sessions.csv#S-002",
@@ -135,6 +138,7 @@
           "5": true
         },
         "all_refs_at_5": null,
+        "unresolved_ids": [],
         "top5": [
           {
             "source_ref": "speakers.json#SP-009",
@@ -172,6 +176,7 @@
           "5": true
         },
         "all_refs_at_5": null,
+        "unresolved_ids": [],
         "top5": [
           {
             "source_ref": "sessions.csv#S-010",
@@ -209,6 +214,7 @@
           "5": true
         },
         "all_refs_at_5": null,
+        "unresolved_ids": [],
         "top5": [
           {
             "source_ref": "sessions.csv#S-038",
@@ -246,6 +252,7 @@
           "5": true
         },
         "all_refs_at_5": null,
+        "unresolved_ids": [],
         "top5": [
           {
             "source_ref": "speakers.json#SP-002",
@@ -284,6 +291,7 @@
           "5": true
         },
         "all_refs_at_5": false,
+        "unresolved_ids": [],
         "top5": [
           {
             "source_ref": "sessions.csv#S-001",
@@ -322,6 +330,7 @@
           "5": true
         },
         "all_refs_at_5": false,
+        "unresolved_ids": [],
         "top5": [
           {
             "source_ref": "venue_guide.pdf#rooms:R-06",
@@ -361,6 +370,7 @@
           "5": true
         },
         "all_refs_at_5": false,
+        "unresolved_ids": [],
         "top5": [
           {
             "source_ref": "sessions.csv#S-026",
@@ -385,44 +395,6 @@
         ]
       },
       {
-        "id": "G-016",
-        "question": "Which speaker (by ID) has given the most sessions that are going ahead, and what is their job title?",
-        "answer_type": "cross_doc",
-        "source_refs": [
-          "speakers.json#SP-008",
-          "sessions.csv"
-        ],
-        "rank": null,
-        "hit_at": {
-          "1": false,
-          "3": false,
-          "5": false
-        },
-        "all_refs_at_5": false,
-        "top5": [
-          {
-            "source_ref": "sessions.csv#S-002",
-            "score": 0.0301
-          },
-          {
-            "source_ref": "sessions.csv#S-009",
-            "score": 0.0292
-          },
-          {
-            "source_ref": "sessions.csv#S-014",
-            "score": 0.0289
-          },
-          {
-            "source_ref": "sessions.csv#S-001",
-            "score": 0.0283
-          },
-          {
-            "source_ref": "sessions.csv#S-007",
-            "score": 0.0273
-          }
-        ]
-      },
-      {
         "id": "G-017",
         "question": "Does the room hosting the cancelled session S-015 have a hearing loop?",
         "answer_type": "cross_doc",
@@ -437,6 +409,7 @@
           "5": true
         },
         "all_refs_at_5": true,
+        "unresolved_ids": [],
         "top5": [
           {
             "source_ref": "sessions.csv#S-015",
@@ -474,6 +447,7 @@
           "5": true
         },
         "all_refs_at_5": null,
+        "unresolved_ids": [],
         "top5": [
           {
             "source_ref": "venue_guide.pdf#policies",
@@ -511,6 +485,7 @@
           "5": true
         },
         "all_refs_at_5": null,
+        "unresolved_ids": [],
         "top5": [
           {
             "source_ref": "venue_guide.pdf#policies:Recording consent",
@@ -548,6 +523,7 @@
           "5": true
         },
         "all_refs_at_5": null,
+        "unresolved_ids": [],
         "top5": [
           {
             "source_ref": "venue_guide.pdf#tickets:VIP",
@@ -585,6 +561,7 @@
           "5": true
         },
         "all_refs_at_5": null,
+        "unresolved_ids": [],
         "top5": [
           {
             "source_ref": "venue_guide.pdf#policies:Late arrival",
@@ -622,6 +599,7 @@
           "5": false
         },
         "all_refs_at_5": null,
+        "unresolved_ids": [],
         "top5": [
           {
             "source_ref": "speakers.json#SP-022",
@@ -659,6 +637,7 @@
           "5": false
         },
         "all_refs_at_5": null,
+        "unresolved_ids": [],
         "top5": [
           {
             "source_ref": "sessions.csv#S-023",
@@ -696,6 +675,7 @@
           "5": false
         },
         "all_refs_at_5": null,
+        "unresolved_ids": [],
         "top5": [
           {
             "source_ref": "speakers.json#SP-006",
@@ -733,6 +713,7 @@
           "5": false
         },
         "all_refs_at_5": null,
+        "unresolved_ids": [],
         "top5": [
           {
             "source_ref": "sessions.csv#S-009",
@@ -770,6 +751,7 @@
           "5": false
         },
         "all_refs_at_5": null,
+        "unresolved_ids": [],
         "top5": [
           {
             "source_ref": "sessions.csv#S-005",
@@ -793,6 +775,10 @@
           }
         ]
       }
-    ]
+    ],
+    "query_latency_ms": {
+      "p50": 8.98,
+      "p95": 132.86
+    }
   }
 }

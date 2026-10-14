@@ -22,7 +22,7 @@ and lives in `data/kb/`:
 | `sessions.csv` | ~40 conference sessions: title, track, level, day, time, room, speaker(s), capacity, status, notes | Tabular, one row per session — the natural shape for counting/filtering/aggregation queries (a RAG system has to route these to a structured query path rather than semantic search) |
 | `speakers.json` | ~25 speaker profiles: name, organisation, job title, email, phone, country, bio, LinkedIn, session IDs | Nested/record-shaped data (a list per speaker) doesn't flatten cleanly into a single CSV row, and JSON is the common interchange format for this kind of profile data |
 | `venue_guide.pdf` | A 4-page PDF with three tables: Rooms, Ticket Tiers, and Key Policies | Tests PDF table extraction specifically — policies and room facts live only in prose-adjacent tabular PDF content, not in the structured CSV/JSON, forcing a genuinely multi-format RAG pipeline |
-| `manifest.json` | `kb_version`, the generator seed, and a SHA-256 per KB file (incl. `evals/kb_gold.jsonl`) | Pins the dataset to a version so a silent content drift is caught by a test instead of by a confusing eval regression later |
+| `manifest.json` | `kb_version`, the generator seed, and a SHA-256 per KB file (incl. `evals/kb_gold.jsonl` and `evals/kb_heldout.jsonl`) | Pins the dataset to a version so a silent content drift is caught by a test instead of by a confusing eval regression later |
 
 `evals/kb_gold.jsonl` holds ~30 gold question/answer pairs computed
 programmatically from the generated data (never hand-written). Each item has:
@@ -85,6 +85,7 @@ programmatically from the generated data (never hand-written). Each item has:
   content no longer matches its recorded hash — a deliberate trip-wire so a
   content change can't silently ship without bumping `KB_VERSION` in
   `scripts/generate_kb.py` and re-running every eval against the new data.
+  Each bump gets an entry in [`CHANGELOG.md`](CHANGELOG.md).
 
 **Planted edge cases** (all enforced by `tests/test_kb.py` and a
 self-check inside the generator; IDs are not stable across regenerations —
@@ -156,7 +157,25 @@ TODO: setup and run instructions (uv, env vars, Streamlit app).
 
 ## Evaluation
 
-TODO: describe eval sets and how to run them.
+- `evals/kb_gold.jsonl` (~30 items) and `evals/sql_sanity.py` /
+  `evals/retrieval_eval.py` are the iteration loop: run these as often as
+  you like while tuning the pipeline. `evals/retrieval_eval.py --config
+  <name> [--save-baseline <name>]` evaluates one named config from
+  `rag/pipeline.py`'s `CONFIGS` against `kb_gold.jsonl`; `evals/ABLATION.md`
+  tracks the resulting comparison across configs.
+- `evals/kb_heldout.jsonl` (~15 items) is **evaluated once, at submission
+  time, by a human, not during iteration** — it exists to catch overfitting
+  to the gold set's specific phrasing, which it can't do if it's used for
+  tuning. `retrieval_eval.py --heldout` refuses to run unless `--final` is
+  also passed *and* the `HELDOUT_CONFIRM` environment variable is set to the
+  exact current `kb_version` — two independent, hard-to-trigger-by-accident
+  confirmations. See [`CLAUDE.md`](CLAUDE.md) for the standing rule against
+  running it at all outside that one real evaluation, including to test the
+  guard itself (a mistake made once during this project's development —
+  see `CHANGELOG.md` 1.0.2).
+- Every eval result records `kb_version` (read from `data/kb/manifest.json`)
+  and `git_commit_sha`, so a result can always be matched back to the exact
+  KB content and code it was produced against (see `docs/architecture.md`).
 
 ## Limitations & Next Steps
 

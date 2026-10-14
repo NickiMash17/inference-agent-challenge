@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from rag.index import NumpyVectorIndex
+from rag.index import NumpyVectorIndex, tokenize
 from rag.ingest import load_all, parse_venue_pdf
 from rag.models import Chunk
 from rag.sql_store import get_connection
@@ -132,3 +132,15 @@ def test_vector_cache_invalidates_on_text_change(tmp_path):
     index_v1_again = NumpyVectorIndex(cache_dir=tmp_path)
     index_v1_again.add([chunk_v1])
     assert (index_v1_again.embeddings == index_v1.embeddings).all()
+
+
+def test_ids_tokenize_cleanly_despite_surrounding_punctuation():
+    """Regression test for the G-004 diagnosis: IDs must stay a single
+    token and never absorb or get split by surrounding punctuation, while
+    still keeping their internal hyphen."""
+    assert tokenize("Session S-015: has been cancelled.") == [
+        "session", "s-015", "has", "been", "cancelled",
+    ]
+    assert tokenize("(SP-001) presented") == ["sp-001", "presented"]
+    assert tokenize("in room R-04.") == ["in", "room", "r-04"]
+    assert tokenize("S-015, S-016, and S-017") == ["s-015", "s-016", "and", "s-017"]

@@ -56,6 +56,15 @@ def sql_for_item(item: dict) -> str:
             "JOIN session_speakers ss ON sa.session_id = ss.session_id "
             f"WHERE ss.speaker_id = '{speaker_id}'"
         )
+    if gid == "G-016":
+        # Relabelled cross_doc -> aggregation in kb_version 1.0.1: it's a
+        # COUNT + GROUP BY + tie-broken ORDER BY, same shape as G-010.
+        return (
+            "SELECT ss.speaker_id FROM sessions_active sa "
+            "JOIN session_speakers ss ON sa.session_id = ss.session_id "
+            "GROUP BY ss.speaker_id "
+            "ORDER BY COUNT(*) DESC, ss.speaker_id ASC LIMIT 1"
+        )
     raise ValueError(f"No hand-written SQL registered for aggregation item {gid!r}")
 
 
