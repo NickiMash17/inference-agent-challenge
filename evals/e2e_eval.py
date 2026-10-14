@@ -20,6 +20,7 @@ baseline, not quick iteration).
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import re
 import subprocess
@@ -66,21 +67,62 @@ def _normalize(text: str) -> str:
     return re.sub(r"\s+", " ", text.strip().lower())
 
 
+#: Stripped out of an answer before number-extraction, so an ID's digits
+#: (SP-001), a date (2026-11-18), or a time/time-range (13:30-14:30) never
+#: get mistaken for the numeric answer.
+_ID_PATTERN = re.compile(r"\b(?:SP-\d{3}|S-\d{3}|R-\d{2})\b", re.IGNORECASE)
+_DATE_PATTERN = re.compile(r"\b\d{4}-\d{1,2}-\d{1,2}\b")
+_TIME_PATTERN = re.compile(r"\b\d{1,2}:\d{2}(?:-\d{1,2}:\d{2})?\b")
+#: A hyphen is only a minus sign when it isn't directly attached to a
+#: letter (the (?<![A-Za-z]) guard) - without this, "SP-001" or "S-006"
+#: would be read as a negative number even after the stripping above misses
+#: an ID shape it doesn't recognize.
+_NUMBER_PATTERN = re.compile(r"(?<![A-Za-z])-?\d[\d,]*\.?\d*")
+
+#: Matches expected_value's for list-of-IDs answers, e.g. "SP-004;SP-019".
+_ID_LIST_PATTERN = re.compile(
+    r"^(?:SP-\d{3}|S-\d{3}|R-\d{2})(?:;(?:SP-\d{3}|S-\d{3}|R-\d{2}))+$", re.IGNORECASE
+)
+
+
 def _extract_number(text: str) -> float | None:
-    match = re.search(r"-?\d[\d,]*\.?\d*", text)
+    cleaned = _TIME_PATTERN.sub(" ", _DATE_PATTERN.sub(" ", _ID_PATTERN.sub(" ", text)))
+    match = _NUMBER_PATTERN.search(cleaned)
     if not match:
         return None
     return float(match.group().replace(",", ""))
 
 
-def check_correctness(item: dict, result: AnswerResult) -> bool:
+def load_entity_names(kb_dir: Path = KB_DIR) -> dict[str, str]:
+    """Maps every speaker/session/room ID to its human-readable name, for
+    scoring list-valued (semicolon-separated ID) expected_values: an answer
+    that names an entity by name rather than ID should still count."""
+    from rag.ingest import parse_venue_pdf
+
+    names: dict[str, str] = {}
+    speakers = json.loads((kb_dir / "speakers.json").read_text(encoding="utf-8"))
+    for sp in speakers:
+        names[sp["speaker_id"]] = sp["full_name"]
+    with (kb_dir / "sessions.csv").open(encoding="utf-8", newline="") as f:
+        for row in csv.DictReader(f):
+            names[row["session_id"]] = row["title"]
+    for room in parse_venue_pdf(kb_dir / "venue_guide.pdf")["rooms"]:
+        names[room["room_id"]] = room["name"]
+    return names
+
+
+def check_correctness(
+    item: dict, result: AnswerResult, entity_names: dict[str, str] | None = None
+) -> bool:
+    entity_names = entity_names or {}
     expected_value = item["expected_value"]
+    norm_answer = _normalize(result.answer)
 
     if expected_value == "NOT_IN_KB":
         return result.not_in_kb is True
 
     if isinstance(expected_value, bool):
-        return _normalize(str(expected_value)) in _normalize(result.answer)
+        return _normalize(str(expected_value)) in norm_answer
 
     if isinstance(expected_value, int | float):
         got = _extract_number(result.answer)
@@ -89,11 +131,29 @@ def check_correctness(item: dict, result: AnswerResult) -> bool:
         tolerance = item.get("tolerance", 0)
         return abs(got - float(expected_value)) <= tolerance
 
-    expected_str = str(expected_value)
-    if expected_str in ("Yes", "No"):
-        return bool(re.search(rf"\b{re.escape(expected_str.lower())}\b", _normalize(result.answer)))
+    # Policy items are scored on specific key facts, not whole-sentence
+    # containment: an LLM answer that correctly paraphrases the policy
+    # (reorders clauses, rewords "may incur" as "may be charged") should not
+    # be marked wrong just because it doesn't quote the gold sentence
+    # verbatim.
+    must_contain = item.get("must_contain")
+    if must_contain:
+        return all(_normalize(fact) in norm_answer for fact in must_contain)
 
-    return _normalize(expected_str) in _normalize(result.answer)
+    expected_str = str(expected_value)
+
+    if _ID_LIST_PATTERN.match(expected_str):
+        ids = expected_str.split(";")
+        return all(
+            eid.lower() in norm_answer
+            or (eid in entity_names and _normalize(entity_names[eid]) in norm_answer)
+            for eid in ids
+        )
+
+    if expected_str in ("Yes", "No"):
+        return bool(re.search(rf"\b{re.escape(expected_str.lower())}\b", norm_answer))
+
+    return _normalize(expected_str) in norm_answer
 
 
 def expected_routes(item: dict) -> set[str] | None:
@@ -127,9 +187,27 @@ class CostLimitExceeded(RuntimeError):
     pass
 
 
+def reps_guard_error(reps: int, save_baseline: str | None) -> str | None:
+    """Pure guard, same pattern as retrieval_eval.py's heldout_guard_error:
+    testable directly, no argparse/CLI involved."""
+    if reps > 1 and not save_baseline:
+        return "--reps > 1 requires --save-baseline (a multi-rep run records a baseline)"
+    return None
+
+
+def missing_api_key_error(settings: Settings) -> str | None:
+    """Pure guard: returns an error message if settings has no API key, or
+    None if a live run may proceed. Pure/testable - never touches argparse,
+    the network, or anthropic.Anthropic."""
+    if not settings.atlas_anthropic_api_key:
+        return "ATLAS_ANTHROPIC_API_KEY is not set - cannot run a live e2e eval"
+    return None
+
+
 def run_eval(llm: LLMClient, settings: Settings, reps: int) -> dict:
     gold = load_gold()
     manifest = json.loads((KB_DIR / "manifest.json").read_text(encoding="utf-8"))
+    entity_names = load_entity_names(KB_DIR)
 
     chunks = load_all(KB_DIR)
     con = get_connection(KB_DIR)
@@ -160,7 +238,7 @@ def run_eval(llm: LLMClient, settings: Settings, reps: int) -> dict:
                     "aborting the eval run."
                 )
 
-            correct = check_correctness(item, result)
+            correct = check_correctness(item, result, entity_names)
             routes_ok = expected_routes(item)
             route_correct = routes_ok is None or result.route in routes_ok
             end_to_end_latency = sum(result.stage_latencies_s.values())
@@ -324,12 +402,14 @@ def main() -> None:
     parser.add_argument("--save-baseline", default=None, help="write evals/baselines/<name>.json")
     args = parser.parse_args()
 
-    if args.reps > 1 and not args.save_baseline:
-        parser.error("--reps > 1 requires --save-baseline (a multi-rep run records a baseline)")
+    reps_error = reps_guard_error(args.reps, args.save_baseline)
+    if reps_error:
+        parser.error(reps_error)
 
     settings = Settings()
-    if not settings.atlas_anthropic_api_key:
-        parser.error("ATLAS_ANTHROPIC_API_KEY is not set - cannot run a live e2e eval")
+    key_error = missing_api_key_error(settings)
+    if key_error:
+        parser.error(key_error)
 
     llm = AnthropicClient(settings)
 

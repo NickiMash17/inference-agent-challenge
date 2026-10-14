@@ -26,6 +26,7 @@ from dataclasses import dataclass
 from typing import Protocol, TypeVar
 
 import anthropic
+import pydantic
 from pydantic import BaseModel
 
 from shared.config import Settings
@@ -104,6 +105,15 @@ class AnthropicClient:
             )
         except anthropic.AnthropicError as exc:
             raise LLMError(f"{model} request failed: {exc}") from exc
+        except pydantic.ValidationError as exc:
+            # messages.parse() validates the model's raw text against
+            # `output_model` internally; a truncated or otherwise malformed
+            # structured-output response (e.g. max_tokens cut off mid-JSON)
+            # surfaces here as a pydantic ValidationError, not an
+            # anthropic.AnthropicError. Wrapping it as LLMError lets
+            # downstream retry logic (e.g. rag/sql_agent.py) handle it the
+            # same way it handles any other generation failure.
+            raise LLMError(f"{model} returned unparseable structured output: {exc}") from exc
         latency_s = time.perf_counter() - t0
 
         parsed = response.parsed_output

@@ -17,7 +17,7 @@ from rag.sql_agent import (
     guard_sql,
 )
 from rag.sql_store import get_connection
-from shared.llm import FakeLLMClient, LLMResult, LLMUsage
+from shared.llm import FakeLLMClient, LLMError, LLMResult, LLMUsage
 
 ROOT = Path(__file__).resolve().parent.parent
 KB_DIR = ROOT / "data" / "kb"
@@ -174,3 +174,23 @@ def test_generate_and_run_sql_gives_up_gracefully_after_one_failed_retry(con):
     assert result.retried is True
     assert result.error is not None
     assert result.rows == []
+
+
+def test_generate_and_run_sql_retries_after_truncated_structured_output(con):
+    """Regression test for the G-016 bug: AnthropicClient.generate() wraps a
+    truncated/invalid structured-output response as LLMError (see
+    tests/test_shared_llm.py); the SQL agent must retry once on that failure
+    too, not just on guard/execution failures after a successful parse."""
+    schema = {"sessions_active": [("session_id", "VARCHAR")]}
+    fake = FakeLLMClient(
+        scripted=[
+            LLMError("claude-haiku-5-5 returned unparseable structured output: truncated JSON"),
+            _llm_result(GeneratedSQL(sql="SELECT COUNT(*) AS n FROM sessions_active")),
+        ]
+    )
+    result = generate_and_run_sql("how many sessions?", con, fake, "model", schema)
+
+    assert result.retried is True
+    assert result.error is None
+    assert result.columns == ["n"]
+    assert len(result.rows) == 1

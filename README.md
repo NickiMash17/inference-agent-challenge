@@ -146,6 +146,22 @@ that would otherwise differ between runs. `tests/test_pdf_extraction.py`
 extracts the PDF's tables with `pdfplumber` and checks that headers and row
 counts match the generator's source data exactly.
 
+### Design decisions
+
+- **Contact details (email, phone) are excluded from chunk text.**
+  `rag/ingest.py`'s speaker chunks include name, job title, organisation,
+  country, bio, and session list - never `email` or `phone`, which stay in
+  `Chunk.metadata` only. Reasoning: this is Q&A grounded in retrieved text,
+  not a contact directory, and surfacing personal contact details to an LLM
+  as answerable context is the wrong default even for fictional data (the
+  habit matters more than this specific dataset). One consequence worth
+  naming explicitly: an email/phone lookup question is **unanswerable by
+  the RAG pipeline by design**, not a retrieval failure - `evals/kb_gold.jsonl`
+  does not include one (an earlier draft did; see `CHANGELOG.md`), and any
+  future gold/held-out item should ask about a chunk-text field instead
+  (job title, organisation, country, bio, session list) if it's meant to be
+  answerable via retrieval.
+
 ## Part 2: LangGraph agent
 
 TODO: describe the agent graph, tools (Calendar, Gmail, web), and the data

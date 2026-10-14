@@ -6,7 +6,7 @@ import pytest
 from pydantic import BaseModel
 
 from shared.config import ModelPricing, Settings, api_key_status
-from shared.llm import FakeLLMClient, LLMResult, LLMUsage
+from shared.llm import AnthropicClient, FakeLLMClient, LLMError, LLMResult, LLMUsage
 
 
 class _Foo(BaseModel):
@@ -64,3 +64,54 @@ def test_fake_llm_client_raises_assertion_error_when_queue_exhausted():
     fake = FakeLLMClient(scripted=[])
     with pytest.raises(AssertionError):
         fake.generate(model="m", system="s", messages=[], output_model=_Foo)
+
+
+# --- conftest.py safety nets (see tests/conftest.py) --------------------------
+
+
+def test_dotenv_loading_is_disabled_during_tests():
+    """Proves the autouse fixture in conftest.py is active: even a
+    Settings() call that forgets to pass _env_file=None must not read the
+    real .env while the test suite is running."""
+    assert Settings.model_config.get("env_file") is None
+
+
+def test_constructing_a_real_anthropic_client_is_blocked_in_tests():
+    """Proves that a test which accidentally tries to build a real
+    AnthropicClient fails fast with a clear error instead of calling the
+    API (see tests/conftest.py's _block_real_network)."""
+    settings = Settings(_env_file=None, atlas_anthropic_api_key="sk-fake-for-this-test")
+    with pytest.raises(RuntimeError, match="network blocked in tests"):
+        AnthropicClient(settings)
+
+
+def test_anthropic_client_wraps_truncated_structured_output_as_llm_error():
+    """Regression test for the G-016 bug: when max_tokens truncates the
+    model's JSON mid-response, the SDK's messages.parse() raises a
+    pydantic.ValidationError while validating the (incomplete) text against
+    output_format - not an anthropic.AnthropicError. generate() must wrap
+    that as LLMError too, so downstream retry logic can handle it.
+
+    Builds an AnthropicClient without calling anthropic.Anthropic.__init__
+    (which tests/conftest.py blocks) - this test exercises generate()'s own
+    exception handling in isolation, not SDK construction, so there's
+    nothing to fake-network-call in the first place.
+    """
+
+    class _StubMessages:
+        def parse(self, **kwargs):
+            # Mirrors what the real SDK does internally: validates the
+            # model's raw response text against output_format and raises a
+            # genuine pydantic.ValidationError on truncated/invalid JSON.
+            return _Foo.model_validate_json('{"x": ')
+
+    class _StubAnthropicSDKClient:
+        messages = _StubMessages()
+
+    settings = Settings(_env_file=None, atlas_anthropic_api_key="sk-fake-for-this-test")
+    client = AnthropicClient.__new__(AnthropicClient)
+    client._settings = settings
+    client._client = _StubAnthropicSDKClient()
+
+    with pytest.raises(LLMError, match="unparseable structured output"):
+        client.generate(model="m", system="s", messages=[], output_model=_Foo)

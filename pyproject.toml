@@ -21,6 +21,7 @@ dependencies = [
 dev = [
     "ruff>=0.8",
     "pytest>=8.0",
+    "pytest-timeout>=2.3",
     "pre-commit>=4.0",
 ]
 data = [
@@ -42,4 +43,5 @@ testpaths = ["tests"]
 markers = [
     "live: requires a real ATLAS_ANTHROPIC_API_KEY and makes real API calls (skipped by default)",
 ]
-addopts = "-m 'not live'"
+addopts = "-m 'not live' --timeout=30"
+timeout_method = "thread"

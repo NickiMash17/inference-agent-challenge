@@ -595,7 +595,7 @@ def answer(
 
         if route_name == "sql":
             t0 = time.perf_counter()
-            sql_result = generate_and_run_sql(query, con, llm, answer_model, schema)
+            sql_result = generate_and_run_sql(query, con, llm, router_model, schema)
             stage_latencies["sql"] = time.perf_counter() - t0
             if sql_result.error:
                 errors.append(f"sql error: {sql_result.error}")

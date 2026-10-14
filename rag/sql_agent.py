@@ -153,6 +153,24 @@ class SQLResult:
     retried: bool
 
 
+def _generate_sql(query: str, system: str, llm: LLMClient, model: str) -> tuple[str, str | None]:
+    """Returns (sql, None) on success, or ("", error_message) on failure -
+    including a truncated/invalid structured-output response (surfaced as
+    LLMError by shared.llm.AnthropicClient.generate(), which wraps both
+    anthropic.AnthropicError and pydantic.ValidationError)."""
+    try:
+        result = llm.generate(
+            model=model,
+            system=system,
+            messages=[{"role": "user", "content": query}],
+            output_model=GeneratedSQL,
+            max_tokens=1024,
+        )
+    except LLMError as exc:
+        return "", f"SQL generation failed: {exc}"
+    return result.parsed.sql, None
+
+
 def generate_and_run_sql(
     query: str,
     con: duckdb.DuckDBPyConnection,
@@ -162,26 +180,18 @@ def generate_and_run_sql(
 ) -> SQLResult:
     system = SQL_SYSTEM_PROMPT_TEMPLATE.format(schema_description=_describe_schema_text(schema))
 
-    try:
-        result = llm.generate(
-            model=model,
-            system=system,
-            messages=[{"role": "user", "content": query}],
-            output_model=GeneratedSQL,
-            max_tokens=512,
-        )
-    except LLMError as exc:
-        return SQLResult(
-            sql="", rows=[], columns=[], error=f"SQL generation failed: {exc}", retried=False
-        )
+    sql, error = _generate_sql(query, system, llm, model)
+    if error is None:
+        outcome = _guard_and_run(sql, con)
+        if not isinstance(outcome, str):
+            rows, columns = outcome
+            return SQLResult(sql=sql, rows=rows, columns=columns, error=None, retried=False)
+        error = outcome
 
-    sql = result.parsed.sql
-    outcome = _guard_and_run(sql, con)
-    if isinstance(outcome, str):
-        return _retry_once(query, sql, outcome, con, llm, model, system)
-
-    rows, columns = outcome
-    return SQLResult(sql=sql, rows=rows, columns=columns, error=None, retried=False)
+    # One retry regardless of whether the first failure happened at
+    # generation time (e.g. truncated structured output), guard time, or
+    # execution time - all three are "the model needs another attempt".
+    return _retry_once(query, sql, error, con, llm, model, system)
 
 
 def _guard_and_run(
@@ -207,24 +217,39 @@ def _retry_once(
     model: str,
     system: str,
 ) -> SQLResult:
-    messages = [
-        {"role": "user", "content": query},
-        {"role": "assistant", "content": f"SQL: {failed_sql}"},
-        {
-            "role": "user",
-            "content": (
-                f"That query failed with this error:\n{error}\n\n"
-                "Fix it and return corrected SQL."
-            ),
-        },
-    ]
+    if failed_sql:
+        messages = [
+            {"role": "user", "content": query},
+            {"role": "assistant", "content": f"SQL: {failed_sql}"},
+            {
+                "role": "user",
+                "content": (
+                    f"That query failed with this error:\n{error}\n\n"
+                    "Fix it and return corrected SQL."
+                ),
+            },
+        ]
+    else:
+        # The first attempt never produced usable SQL at all (e.g. a
+        # truncated structured-output response) - there's no prior SQL to
+        # show the model, just the question and what went wrong.
+        messages = [
+            {"role": "user", "content": query},
+            {
+                "role": "user",
+                "content": (
+                    f"Generating SQL for that question failed with this error:\n{error}\n\n"
+                    "Please try again and return valid SQL."
+                ),
+            },
+        ]
     try:
         retry_result = llm.generate(
             model=model,
             system=system,
             messages=messages,
             output_model=GeneratedSQL,
-            max_tokens=512,
+            max_tokens=1024,
         )
     except LLMError as exc:
         return SQLResult(

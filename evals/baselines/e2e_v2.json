@@ -1,0 +1,690 @@
+{
+  "timestamp": "20261014T034532Z",
+  "kb_version": "1.0.3",
+  "git_commit_sha": "ed919d344e702e860d0e68da3f176f99532d0873",
+  "router_model": "claude-haiku-5-5",
+  "answer_model": "claude-sonnet-5-5",
+  "reps": 1,
+  "n_gold_items": 30,
+  "n_queries_total": 30,
+  "by_answer_type": {
+    "lookup": {
+      "correct": 6,
+      "n": 6
+    },
+    "aggregation": {
+      "correct": 7,
+      "n": 7
+    },
+    "cross_doc": {
+      "correct": 4,
+      "n": 4
+    },
+    "policy": {
+      "correct": 4,
+      "n": 4
+    },
+    "negative": {
+      "correct": 4,
+      "n": 4
+    },
+    "semantic": {
+      "correct": 5,
+      "n": 5
+    }
+  },
+  "route_accuracy": {
+    "correct": 29,
+    "n": 30
+  },
+  "citation_validity": {
+    "valid_or_refused": 26,
+    "n": 26
+  },
+  "negative_refusal": {
+    "refused": 4,
+    "n": 4
+  },
+  "false_refusals_on_answerable_items": 0,
+  "latency_ms": {
+    "p50": 3693.25,
+    "p95": 6385.0
+  },
+  "cost_usd": {
+    "total": 0.1586,
+    "per_query": 0.005288
+  },
+  "inconsistent_items": [],
+  "per_item_records": {
+    "G-001": [
+      {
+        "question": "What is the title of session S-001?",
+        "answer_type": "lookup",
+        "expected_value": "Automating Legal Document Review with LLMs",
+        "answer": "Session S-001 is titled \"Automating Legal Document Review with LLMs\".",
+        "route": "id_lookup",
+        "route_correct": true,
+        "citations": [
+          "sessions.csv#S-001"
+        ],
+        "invalid_citations": [],
+        "not_in_kb": false,
+        "low_confidence": false,
+        "correct": true,
+        "cost_usd": 0.006764,
+        "latency_s": 3.2226031999998668,
+        "sql": null,
+        "errors": []
+      }
+    ],
+    "G-002": [
+      {
+        "question": "Which room is session S-004 held in?",
+        "answer_type": "lookup",
+        "expected_value": "R-04",
+        "answer": "Session S-004, \"Retrieval-Augmented Generation for Enterprise Search\", is held in Workshop 2 (room R-04) on Day 1 (2026-11-18), 09:00-10:00. Room R-04 is on floor 2 with a capacity of 60.",
+        "route": "id_lookup",
+        "route_correct": true,
+        "citations": [
+          "sessions.csv#S-004",
+          "venue_guide.pdf#rooms:R-04"
+        ],
+        "invalid_citations": [],
+        "not_in_kb": false,
+        "low_confidence": false,
+        "correct": true,
+        "cost_usd": 0.007802,
+        "latency_s": 2.2107403999998496,
+        "sql": null,
+        "errors": []
+      }
+    ],
+    "G-003": [
+      {
+        "question": "What is the job title of speaker SP-009?",
+        "answer_type": "lookup",
+        "expected_value": "Applied Scientist",
+        "answer": "Speaker SP-009, Ernest Olson, is an Applied Scientist at Clearwater Machine Intelligence.",
+        "route": "id_lookup",
+        "route_correct": true,
+        "citations": [
+          "speakers.json#SP-009"
+        ],
+        "invalid_citations": [],
+        "not_in_kb": false,
+        "low_confidence": false,
+        "correct": true,
+        "cost_usd": 0.005618,
+        "latency_s": 1.8627076999991914,
+        "sql": null,
+        "errors": []
+      }
+    ],
+    "G-004": [
+      {
+        "question": "What is the status of session S-015?",
+        "answer_type": "lookup",
+        "expected_value": "Cancelled",
+        "answer": "Session S-015, \"Query Routing for Multi-Source RAG\" (presented by David Delgado of BrightPath AI, Day 1, 14:45-15:45 in Hall A), has been cancelled.",
+        "route": "id_lookup",
+        "route_correct": true,
+        "citations": [
+          "sessions.csv#S-015"
+        ],
+        "invalid_citations": [],
+        "not_in_kb": false,
+        "low_confidence": false,
+        "correct": true,
+        "cost_usd": 0.006976,
+        "latency_s": 2.1703709000003073,
+        "sql": null,
+        "errors": []
+      }
+    ],
+    "G-005": [
+      {
+        "question": "Before it moved, which room was session S-038 originally scheduled in?",
+        "answer_type": "lookup",
+        "expected_value": "R-03",
+        "answer": "Session S-038, \"Reducing Hallucinations with Grounded Retrieval,\" was originally scheduled in Workshop 1 (room R-03). It was moved to Workshop 2 (R-04) due to a venue scheduling conflict.",
+        "route": "id_lookup",
+        "route_correct": true,
+        "citations": [
+          "sessions.csv#S-038"
+        ],
+        "invalid_citations": [],
+        "not_in_kb": false,
+        "low_confidence": false,
+        "correct": true,
+        "cost_usd": 0.006992,
+        "latency_s": 2.039477000000261,
+        "sql": null,
+        "errors": []
+      }
+    ],
+    "G-006": [
+      {
+        "question": "What organisation is speaker SP-002 affiliated with?",
+        "answer_type": "lookup",
+        "expected_value": "Ironwood AI Research",
+        "answer": "Speaker SP-002, John Mokoena, is affiliated with Ironwood AI Research, where they work as a Data Scientist.",
+        "route": "id_lookup",
+        "route_correct": true,
+        "citations": [
+          "speakers.json#SP-002"
+        ],
+        "invalid_citations": [],
+        "not_in_kb": false,
+        "low_confidence": false,
+        "correct": true,
+        "cost_usd": 0.005404,
+        "latency_s": 2.156860900000538,
+        "sql": null,
+        "errors": []
+      }
+    ],
+    "G-007": [
+      {
+        "question": "How many sessions are going ahead on Day 1 (18 November 2026)?",
+        "answer_type": "aggregation",
+        "expected_value": 19,
+        "answer": "19 sessions are going ahead on Day 1, according to the active sessions data.",
+        "route": "sql",
+        "route_correct": true,
+        "citations": [
+          "sql:2fa16598c43d"
+        ],
+        "invalid_citations": [],
+        "not_in_kb": false,
+        "low_confidence": false,
+        "correct": true,
+        "cost_usd": 0.0022263,
+        "latency_s": 4.83737790000032,
+        "sql": "SELECT COUNT(*) AS session_count FROM sessions_active WHERE day = 1",
+        "errors": []
+      }
+    ],
+    "G-008": [
+      {
+        "question": "How many sessions in the Safety track are going ahead?",
+        "answer_type": "aggregation",
+        "expected_value": 8,
+        "answer": "8 sessions in the Safety track are going ahead, based on the count of active sessions in that track.",
+        "route": "sql",
+        "route_correct": true,
+        "citations": [
+          "sql:62af40bb4e56"
+        ],
+        "invalid_citations": [],
+        "not_in_kb": false,
+        "low_confidence": false,
+        "correct": true,
+        "cost_usd": 0.00227,
+        "latency_s": 4.6989661999996315,
+        "sql": "SELECT COUNT(*) AS session_count FROM sessions_active WHERE track = 'Safety'",
+        "errors": []
+      }
+    ],
+    "G-009": [
+      {
+        "question": "What is the average capacity of sessions that are going ahead, rounded to 1 decimal place?",
+        "answer_type": "aggregation",
+        "expected_value": 115.3,
+        "answer": "The average capacity of active sessions is 115.3.",
+        "route": "sql",
+        "route_correct": true,
+        "citations": [
+          "sql:c4a7b3e19484"
+        ],
+        "invalid_citations": [],
+        "not_in_kb": false,
+        "low_confidence": false,
+        "correct": true,
+        "cost_usd": 0.0021778,
+        "latency_s": 5.1690476000012495,
+        "sql": "SELECT ROUND(AVG(capacity), 1) AS avg_capacity FROM sessions_active",
+        "errors": []
+      }
+    ],
+    "G-010": [
+      {
+        "question": "Which session (by ID) has the highest capacity among sessions that are going ahead?",
+        "answer_type": "aggregation",
+        "expected_value": "S-001",
+        "answer": "Session S-001 has the highest capacity among active sessions, with a capacity of 300.",
+        "route": "sql",
+        "route_correct": true,
+        "citations": [
+          "sql:664b4ff75df9"
+        ],
+        "invalid_citations": [],
+        "not_in_kb": false,
+        "low_confidence": false,
+        "correct": true,
+        "cost_usd": 0.0023174,
+        "latency_s": 5.9877182999998695,
+        "sql": "SELECT session_id, capacity FROM sessions_active WHERE capacity = (SELECT MAX(capacity) FROM sessions_active);",
+        "errors": []
+      }
+    ],
+    "G-011": [
+      {
+        "question": "How many sessions have a status of Cancelled?",
+        "answer_type": "aggregation",
+        "expected_value": 1,
+        "answer": "1 session has a status of Cancelled.",
+        "route": "sql",
+        "route_correct": true,
+        "citations": [
+          "sql:819d53b91482"
+        ],
+        "invalid_citations": [],
+        "not_in_kb": false,
+        "low_confidence": false,
+        "correct": true,
+        "cost_usd": 0.0020878,
+        "latency_s": 4.737754300000233,
+        "sql": "SELECT COUNT(*) AS cancelled_session_count FROM sessions WHERE status = 'Cancelled'",
+        "errors": []
+      }
+    ],
+    "G-012": [
+      {
+        "question": "How many sessions that are going ahead is speaker SP-001 presenting (as a speaker or co-speaker)?",
+        "answer_type": "aggregation",
+        "expected_value": 2,
+        "answer": "Speaker SP-001 (Jon Mokoena) is presenting 2 sessions that are going ahead: S-006 \"AI-Assisted Customer Support at Scale\" (Day 1, 2026-11-18) and S-030 \"Data Verification Pipelines for Agent Outputs\" (Day 2, 2026-11-19). Both have the status Scheduled.",
+        "route": "id_lookup",
+        "route_correct": false,
+        "citations": [
+          "speakers.json#SP-001",
+          "sessions.csv#S-006",
+          "sessions.csv#S-030"
+        ],
+        "invalid_citations": [],
+        "not_in_kb": false,
+        "low_confidence": false,
+        "correct": true,
+        "cost_usd": 0.005492,
+        "latency_s": 1.9919661000003543,
+        "sql": null,
+        "errors": []
+      }
+    ],
+    "G-013": [
+      {
+        "question": "Which organisation does the speaker presenting session S-001 work for?",
+        "answer_type": "cross_doc",
+        "expected_value": "Jacaranda Systems",
+        "answer": "The speaker presenting session S-001, Kevin Lee (SP-020), works for Jacaranda Systems, where he is a Staff Engineer.",
+        "route": "id_lookup",
+        "route_correct": true,
+        "citations": [
+          "sessions.csv#S-001",
+          "speakers.json#SP-020"
+        ],
+        "invalid_citations": [],
+        "not_in_kb": false,
+        "low_confidence": false,
+        "correct": true,
+        "cost_usd": 0.004634,
+        "latency_s": 1.9566202000005433,
+        "sql": null,
+        "errors": []
+      }
+    ],
+    "G-014": [
+      {
+        "question": "Is the room used for session S-004 wheelchair accessible?",
+        "answer_type": "cross_doc",
+        "expected_value": "No",
+        "answer": "No. Session S-004 is held in Workshop 2 (room R-04), and the venue guide lists R-04 as not wheelchair accessible.",
+        "route": "id_lookup",
+        "route_correct": true,
+        "citations": [
+          "sessions.csv#S-004",
+          "venue_guide.pdf#rooms:R-04"
+        ],
+        "invalid_citations": [],
+        "not_in_kb": false,
+        "low_confidence": false,
+        "correct": true,
+        "cost_usd": 0.004036,
+        "latency_s": 2.043789800000013,
+        "sql": null,
+        "errors": []
+      }
+    ],
+    "G-015": [
+      {
+        "question": "Who are the co-speakers for session S-026, and what are their organisations?",
+        "answer_type": "cross_doc",
+        "expected_value": "SP-004;SP-019",
+        "answer": "Session S-026, \"Observability for LLM Pipelines with Langfuse\", is presented by two speakers: Donald Johnson (SP-004) of BrightPath AI and Joseph Torres (SP-019) of Horizon Cognition.",
+        "route": "id_lookup",
+        "route_correct": true,
+        "citations": [
+          "sessions.csv#S-026",
+          "speakers.json#SP-004",
+          "speakers.json#SP-019"
+        ],
+        "invalid_citations": [],
+        "not_in_kb": false,
+        "low_confidence": false,
+        "correct": true,
+        "cost_usd": 0.007462,
+        "latency_s": 2.1662955000001602,
+        "sql": null,
+        "errors": []
+      }
+    ],
+    "G-016": [
+      {
+        "question": "Which speaker (by ID) has given the most sessions that are going ahead, and what is their job title?",
+        "answer_type": "aggregation",
+        "expected_value": "SP-008",
+        "answer": "Speaker SP-008 has the most sessions going ahead, with 3 sessions. Their job title is Developer Advocate.",
+        "route": "sql",
+        "route_correct": true,
+        "citations": [
+          "sql:919caf600032"
+        ],
+        "invalid_citations": [],
+        "not_in_kb": false,
+        "low_confidence": false,
+        "correct": true,
+        "cost_usd": 0.0026684,
+        "latency_s": 6.3426856999994925,
+        "sql": "SELECT ss.speaker_id, sp.job_title, COUNT(DISTINCT ss.session_id) AS session_count FROM session_speakers ss JOIN sessions_active sa ON sa.session_id = ss.session_id LEFT JOIN speakers sp ON sp.speaker_id = ss.speaker_id GROUP BY ss.speaker_id, sp.job_title ORDER BY session_count DESC LIMIT 1",
+        "errors": []
+      }
+    ],
+    "G-017": [
+      {
+        "question": "Does the room hosting the cancelled session S-015 have a hearing loop?",
+        "answer_type": "cross_doc",
+        "expected_value": "Yes",
+        "answer": "Yes. Session S-015 (\"Query Routing for Multi-Source RAG\", now cancelled) was scheduled in Hall A (room R-01), and Hall A has a hearing loop.",
+        "route": "id_lookup",
+        "route_correct": true,
+        "citations": [
+          "sessions.csv#S-015",
+          "venue_guide.pdf#rooms:R-01"
+        ],
+        "invalid_citations": [],
+        "not_in_kb": false,
+        "low_confidence": false,
+        "correct": true,
+        "cost_usd": 0.004496,
+        "latency_s": 1.8042023999996673,
+        "sql": null,
+        "errors": []
+      }
+    ],
+    "G-018": [
+      {
+        "question": "What is the venue's catering cut-off policy?",
+        "answer_type": "policy",
+        "expected_value": "Lunch orders for dietary requirements must be submitted by 17:00 on 11 November 2026. Walk-in catering is not guaranteed after this cut-off.",
+        "answer": "Lunch orders for dietary requirements must be submitted by 17:00 on 11 November 2026. Walk-in catering is not guaranteed after this cut-off.",
+        "route": "retrieve",
+        "route_correct": true,
+        "citations": [
+          "venue_guide.pdf#policies:Catering cut-off"
+        ],
+        "invalid_citations": [],
+        "not_in_kb": false,
+        "low_confidence": false,
+        "correct": true,
+        "cost_usd": 0.0036563000000000003,
+        "latency_s": 3.617572400001336,
+        "sql": null,
+        "errors": []
+      }
+    ],
+    "G-019": [
+      {
+        "question": "What is the recording consent policy at the Atlas AI Summit?",
+        "answer_type": "policy",
+        "expected_value": "By entering session rooms, attendees consent to being recorded on video and audio for session playback. Attendees who do not wish to be recorded must sit in the designated no-recording section at the back of each room.",
+        "answer": "By entering session rooms, attendees consent to being recorded on video and audio for session playback. Attendees who do not wish to be recorded must sit in the designated no-recording section at the back of each room.",
+        "route": "retrieve",
+        "route_correct": true,
+        "citations": [
+          "venue_guide.pdf#policies:Recording consent"
+        ],
+        "invalid_citations": [],
+        "not_in_kb": false,
+        "low_confidence": false,
+        "correct": true,
+        "cost_usd": 0.0068114,
+        "latency_s": 3.8473339000001943,
+        "sql": null,
+        "errors": []
+      }
+    ],
+    "G-020": [
+      {
+        "question": "What happens if an attendee loses their conference badge?",
+        "answer_type": "policy",
+        "expected_value": "Badges must be worn and visible at all times inside the venue. Lost badges must be reported to the registration desk immediately and may incur a replacement fee of ZAR 150.",
+        "answer": "A lost badge must be reported to the registration desk immediately, and a replacement fee of ZAR 150 may be charged. Badges must be worn and visible at all times inside the venue.",
+        "route": "retrieve",
+        "route_correct": true,
+        "citations": [
+          "venue_guide.pdf#policies:Badge rules"
+        ],
+        "invalid_citations": [],
+        "not_in_kb": false,
+        "low_confidence": false,
+        "correct": true,
+        "cost_usd": 0.0036764000000000002,
+        "latency_s": 3.368433200000254,
+        "sql": null,
+        "errors": []
+      }
+    ],
+    "G-021": [
+      {
+        "question": "What is the policy for attendees who arrive late to a session?",
+        "answer_type": "policy",
+        "expected_value": "Attendees arriving more than 10 minutes after a session start time may be asked to wait for a suitable break before entering, to minimise disruption.",
+        "answer": "Attendees arriving more than 10 minutes after a session start time may be asked to wait for a suitable break before entering, to minimise disruption.",
+        "route": "retrieve",
+        "route_correct": true,
+        "citations": [
+          "venue_guide.pdf#policies:Late arrival"
+        ],
+        "invalid_citations": [],
+        "not_in_kb": false,
+        "low_confidence": false,
+        "correct": true,
+        "cost_usd": 0.0035231,
+        "latency_s": 3.115535199999613,
+        "sql": null,
+        "errors": []
+      }
+    ],
+    "G-022": [
+      {
+        "question": "What is the Wi-Fi password at the venue?",
+        "answer_type": "negative",
+        "expected_value": "NOT_IN_KB",
+        "answer": "Not in the knowledge base.",
+        "route": "retrieve",
+        "route_correct": true,
+        "citations": [],
+        "invalid_citations": [],
+        "not_in_kb": true,
+        "low_confidence": false,
+        "correct": true,
+        "cost_usd": 0.0030153999999999997,
+        "latency_s": 3.532170600000427,
+        "sql": null,
+        "errors": []
+      }
+    ],
+    "G-023": [
+      {
+        "question": "Is there a Day 3 of the Atlas AI Summit?",
+        "answer_type": "negative",
+        "expected_value": "NOT_IN_KB",
+        "answer": "Not in the knowledge base. The context only shows sessions on Day 1 (2026-11-18) and Day 2 (2026-11-19) and does not mention a Day 3 or the name \"Atlas AI Summit\".",
+        "route": "retrieve",
+        "route_correct": true,
+        "citations": [],
+        "invalid_citations": [],
+        "not_in_kb": true,
+        "low_confidence": false,
+        "correct": true,
+        "cost_usd": 0.0075364,
+        "latency_s": 10.722843099999409,
+        "sql": null,
+        "errors": []
+      }
+    ],
+    "G-024": [
+      {
+        "question": "What hotel discount code is available for attendees of the Atlas AI Summit?",
+        "answer_type": "negative",
+        "expected_value": "NOT_IN_KB",
+        "answer": "Not in the knowledge base. The provided context does not mention any hotel discount code for attendees.",
+        "route": "retrieve",
+        "route_correct": true,
+        "citations": [],
+        "invalid_citations": [],
+        "not_in_kb": true,
+        "low_confidence": false,
+        "correct": true,
+        "cost_usd": 0.0063738,
+        "latency_s": 3.7689372000013464,
+        "sql": null,
+        "errors": []
+      }
+    ],
+    "G-025": [
+      {
+        "question": "Who is the keynote speaker for the closing ceremony?",
+        "answer_type": "negative",
+        "expected_value": "NOT_IN_KB",
+        "answer": "Not in the knowledge base.",
+        "route": "retrieve",
+        "route_correct": true,
+        "citations": [],
+        "invalid_citations": [],
+        "not_in_kb": true,
+        "low_confidence": false,
+        "correct": true,
+        "cost_usd": 0.0038652,
+        "latency_s": 5.657863300000827,
+        "sql": null,
+        "errors": []
+      }
+    ],
+    "G-026": [
+      {
+        "question": "Which talk covers how to keep user data confidential when crafting inputs for a language model?",
+        "answer_type": "semantic",
+        "expected_value": "S-010",
+        "answer": "\"Privacy-Preserving Prompting Techniques\" (S-010) is the talk that fits. It is a Beginner-level Safety track session on Day 1 (2026-11-18), 13:30-14:30, in Hall A (room R-01), presented by James Schmitt of Silverline Robotics.",
+        "route": "rewrite_retrieve",
+        "route_correct": true,
+        "citations": [
+          "sessions.csv#S-010"
+        ],
+        "invalid_citations": [],
+        "not_in_kb": false,
+        "low_confidence": false,
+        "correct": true,
+        "cost_usd": 0.0079571,
+        "latency_s": 6.419622600000366,
+        "sql": null,
+        "errors": []
+      }
+    ],
+    "G-027": [
+      {
+        "question": "Which session discusses making a language model's made-up answers less common by anchoring its output in real source material?",
+        "answer_type": "semantic",
+        "expected_value": "S-038",
+        "answer": "Session S-038, \"Reducing Hallucinations with Grounded Retrieval,\" matches this description. It is an Advanced-level RAG track session presented by Kevin Hodges of Thabo & Partners Consulting on Day 2 (2026-11-19), 16:00-17:00. It was moved from Workshop 1 (R-03) to Workshop 2 (R-04) due to a venue scheduling conflict, and its status is Moved.",
+        "route": "rewrite_retrieve",
+        "route_correct": true,
+        "citations": [
+          "sessions.csv#S-038"
+        ],
+        "invalid_citations": [],
+        "not_in_kb": false,
+        "low_confidence": false,
+        "correct": true,
+        "cost_usd": 0.0082407,
+        "latency_s": 6.060033699999622,
+        "sql": null,
+        "errors": []
+      }
+    ],
+    "G-028": [
+      {
+        "question": "Which talk addresses defending AI systems that call external tools from attackers sneaking malicious instructions into their inputs?",
+        "answer_type": "semantic",
+        "expected_value": "S-039",
+        "answer": "The talk is \"Mitigating Prompt Injection in Tool-Using Agents\" (S-039), a Beginner-level Safety track session presented by Samantha Villegas of Mzansi Machine Learning. It takes place on Day 2 (2026-11-19), 16:00-17:00, in the Terrace Room (R-05).",
+        "route": "rewrite_retrieve",
+        "route_correct": true,
+        "citations": [
+          "sessions.csv#S-039"
+        ],
+        "invalid_citations": [],
+        "not_in_kb": false,
+        "low_confidence": false,
+        "correct": true,
+        "cost_usd": 0.0080498,
+        "latency_s": 5.348224399999708,
+        "sql": null,
+        "errors": []
+      }
+    ],
+    "G-029": [
+      {
+        "question": "Which session is about keeping spending in check when running language models live for users?",
+        "answer_type": "semantic",
+        "expected_value": "S-024",
+        "answer": "The session is \"Cost Control for Production Inference\" (S-024), an Intermediate-level MLOps track session on Day 2 (2026-11-19), 09:00-10:00, in the Terrace Room (R-05). It is presented by Paige Williams of Nova Analytics.",
+        "route": "rewrite_retrieve",
+        "route_correct": true,
+        "citations": [
+          "sessions.csv#S-024"
+        ],
+        "invalid_citations": [],
+        "not_in_kb": false,
+        "low_confidence": false,
+        "correct": true,
+        "cost_usd": 0.0081207,
+        "latency_s": 5.4314267999998265,
+        "sql": null,
+        "errors": []
+      }
+    ],
+    "G-030": [
+      {
+        "question": "Which talk explores forecasting how much a farm's crops will produce?",
+        "answer_type": "semantic",
+        "expected_value": "S-031",
+        "answer": "The talk is \"AI for Agricultural Yield Prediction\" (Session S-031), an Advanced-level Applied AI track session presented by Luis Walker of Northstar Data Labs. It takes place on Day 2 (2026-11-19) from 11:30-12:30 in the Boardroom (room R-06).",
+        "route": "rewrite_retrieve",
+        "route_correct": true,
+        "citations": [
+          "sessions.csv#S-031"
+        ],
+        "invalid_citations": [],
+        "not_in_kb": false,
+        "low_confidence": false,
+        "correct": true,
+        "cost_usd": 0.0083991,
+        "latency_s": 6.088292200000069,
+        "sql": null,
+        "errors": []
+      }
+    ]
+  }
+}

@@ -42,7 +42,7 @@ SEED = 42
 #: README "Knowledge base > Conventions"). manifest.json pins the data to
 #: this version via per-file hashes, so a content change without a version
 #: bump is caught by tests/test_kb.py::test_manifest_hashes_match_files.
-KB_VERSION = "1.0.2"
+KB_VERSION = "1.0.3"
 
 ROOT = Path(__file__).resolve().parent.parent
 KB_DIR = ROOT / "data" / "kb"
@@ -312,6 +312,19 @@ KEY_POLICIES = [
         ),
     },
 ]
+
+#: Short, case-insensitive key facts per policy, used to score "policy"
+#: gold items (see evals/e2e_eval.py::check_correctness). Scoring on these
+#: instead of whole-sentence containment means an LLM answer that correctly
+#: paraphrases the policy (reorders clauses, "may incur" -> "may be
+#: charged") still counts as correct. Every phrase here is a literal
+#: substring of its policy's rule text, verified by sanity_check().
+POLICY_MUST_CONTAIN = {
+    "Catering cut-off": ["17:00", "11 November 2026", "dietary requirements"],
+    "Recording consent": ["consent to being recorded", "no-recording section"],
+    "Badge rules": ["worn and visible", "ZAR 150"],
+    "Late arrival": ["10 minutes", "wait for a suitable break"],
+}
 
 # Fixed indices (into the 0-based, pre-sort session build order) used to plant
 # the required edge cases deterministically.
@@ -848,6 +861,7 @@ def generate_gold(
         answer_type: str,
         refs: list[str],
         tolerance: float | None = None,
+        must_contain: list[str] | None = None,
     ) -> None:
         item = {
             "id": f"G-{len(items) + 1:03d}",
@@ -859,6 +873,8 @@ def generate_gold(
         }
         if tolerance is not None:
             item["tolerance"] = tolerance
+        if must_contain is not None:
+            item["must_contain"] = must_contain
         items.append(item)
 
     # --- lookup (6), including >=1 cancelled and >=1 moved ---
@@ -880,10 +896,14 @@ def generate_gold(
     )
 
     sp6 = speakers[8]  # an ordinary speaker, not involved in any planted edge case
+    # Not an email/phone lookup: contact details are deliberately excluded
+    # from chunk text (see README "Design decisions"), so they're never
+    # retrievable by the RAG pipeline and would make this item unanswerable
+    # by design, not a fair test of lookup.
     add(
-        f"What is the email address of speaker {sp6['speaker_id']}?",
-        sp6["email"],
-        sp6["email"],
+        f"What is the job title of speaker {sp6['speaker_id']}?",
+        sp6["job_title"],
+        sp6["job_title"],
         "lookup",
         [f"speakers.json#{sp6['speaker_id']}"],
     )
@@ -1042,12 +1062,18 @@ def generate_gold(
 
     # --- policy (4) ---
     policy_map = {p["policy"]: p["rule"] for p in KEY_POLICIES}
+    for policy_name, facts in POLICY_MUST_CONTAIN.items():
+        for fact in facts:
+            assert fact.lower() in policy_map[policy_name].lower(), (
+                f"must_contain fact {fact!r} is not actually in the {policy_name!r} rule text"
+            )
     add(
         "What is the venue's catering cut-off policy?",
         policy_map["Catering cut-off"],
         policy_map["Catering cut-off"],
         "policy",
         ["venue_guide.pdf#policies"],
+        must_contain=POLICY_MUST_CONTAIN["Catering cut-off"],
     )
     add(
         f"What is the recording consent policy at the {CONFERENCE_NAME}?",
@@ -1055,6 +1081,7 @@ def generate_gold(
         policy_map["Recording consent"],
         "policy",
         ["venue_guide.pdf#policies"],
+        must_contain=POLICY_MUST_CONTAIN["Recording consent"],
     )
     add(
         "What happens if an attendee loses their conference badge?",
@@ -1062,6 +1089,7 @@ def generate_gold(
         policy_map["Badge rules"],
         "policy",
         ["venue_guide.pdf#policies"],
+        must_contain=POLICY_MUST_CONTAIN["Badge rules"],
     )
     add(
         "What is the policy for attendees who arrive late to a session?",
@@ -1069,6 +1097,7 @@ def generate_gold(
         policy_map["Late arrival"],
         "policy",
         ["venue_guide.pdf#policies"],
+        must_contain=POLICY_MUST_CONTAIN["Late arrival"],
     )
 
     # --- negative (4): nothing in the KB backs these, so expected_value is
