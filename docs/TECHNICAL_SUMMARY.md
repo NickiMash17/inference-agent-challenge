@@ -67,7 +67,20 @@ Route accuracy was 29/30, false refusals 0, and citation validity 26/26. Latency
 
 **How the score got there.** The first end-to-end run scored 25/30. Of the 5 failures, 1 was a real bug (SQL output truncated by a token limit, fixed with a retry path), 3 were bugs in my own scorer, and 1 was a test item that contradicted a design decision: it expected an email address, which is deliberately excluded from retrievable text. It was replaced, and the change is recorded in the changelog.
 
-**Honest caveat.** 30/30 is on the development set the system was tuned against, so it is optimistic. A sealed held-out set of 15 unseen questions exists to give the unbiased number; it is guarded in code so it can only run once, at submission. Held-out result: *to be added*.
+**Honest caveat.** 30/30 is on the development set the system was tuned against, so it is optimistic. A sealed held-out set of 15 unseen questions exists to give the unbiased number; it is guarded in code so it can only run once, at submission.
+
+**Held-out result, run once at submission: 14/15.**
+
+| Question type | Correct |
+| --- | --- |
+| ID lookup | 3/3 |
+| Aggregation (SQL) | 3/3 |
+| Semantic (no shared keywords) | 1/2 |
+| Cross-document | 3/3 |
+| Policy (from the PDF) | 2/2 |
+| Unanswerable (must refuse) | 2/2 |
+
+Route accuracy was 15/15 and citation validity 12/12. The one miss, H-012, was a semantic question: the system answered "not in the knowledge base" instead of finding S-008. That is a false refusal, not a wrong or fabricated answer. It withheld rather than guessed, so the failure mode failed safe. Full result in `evals/baselines/e2e_heldout_final.json`.
 
 ## Part 2: agent with tools, extraction and verification
 
@@ -144,4 +157,4 @@ All people, organisations and events are fictional. Every email address uses the
 
 ## How it was built
 
-I built this with AI-assisted development (Claude Code), with the design decisions, review and debugging driven by me, over about [X] hours. I chose to spend the time on measured retrieval quality, safety and verification rather than feature breadth. The repository history shows each step, including the fixes. Project rules for the coding agent (never run the held-out set, never touch secrets, version every data change) live in `CLAUDE.md`.
+I built this with AI-assisted development (Claude Code) over about 15 hours across two days, with the design decisions, review and debugging driven by me. The brief suggested 2.5 to 3 hours. I went beyond that deliberately and spent the extra time on evaluation, safety and debugging rather than features, because those are what make an agent trustworthy in production. The repository history shows each step, including the fixes. Project rules for the coding agent (never run the held-out set, never touch secrets, version every data change) live in `CLAUDE.md`.

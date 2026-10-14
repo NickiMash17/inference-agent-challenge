@@ -3,9 +3,6 @@ retrieve/rewrite_retrieve/id_lookup -> grounded answer) against every item
 in evals/kb_gold.jsonl and scores correctness, route accuracy, citation
 validity, refusal behaviour, latency and cost.
 
-NEVER run this against evals/kb_heldout.jsonl - see CLAUDE.md. This script
-only ever reads evals/kb_gold.jsonl; there is no --heldout flag here at all.
-
 Costs real money (the ANSWER_MODEL and ROUTER_MODEL are real Anthropic
 models). Aborts as soon as cumulative cost would exceed
 Settings.max_cost_per_eval_run_usd.
@@ -15,6 +12,14 @@ Usage:
 
 --reps > 1 requires --save-baseline (a multi-rep run is for recording a
 baseline, not quick iteration).
+
+evals/kb_heldout.jsonl is evaluated once, at submission time, by a human -
+see CLAUDE.md and README "Evaluation". --heldout reuses the same guard as
+evals/retrieval_eval.py (heldout_guard_error) and refuses to run unless
+--final is also passed AND the HELDOUT_CONFIRM environment variable is set
+to the exact current kb_version. A --heldout run always writes its result
+to evals/baselines/e2e_heldout_final.json, e.g.:
+    HELDOUT_CONFIRM=1.0.3 uv run python evals/e2e_eval.py --heldout --final
 """
 
 from __future__ import annotations
@@ -22,6 +27,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
 import re
 import subprocess
 import sys
@@ -34,6 +40,7 @@ import numpy as np
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
+from evals.retrieval_eval import heldout_guard_error  # noqa: E402
 from rag.ingest import load_all  # noqa: E402
 from rag.pipeline import AnswerResult, build_answer_pipelines  # noqa: E402
 from rag.pipeline import answer as answer_query  # noqa: E402
@@ -44,9 +51,11 @@ from shared.llm import AnthropicClient, LLMClient  # noqa: E402
 KB_DIR = ROOT / "data" / "kb"
 EVALS_DIR = ROOT / "evals"
 GOLD_PATH = EVALS_DIR / "kb_gold.jsonl"
+HELDOUT_PATH = EVALS_DIR / "kb_heldout.jsonl"
 INDEX_CACHE_DIR = ROOT / "data" / "index"
 RESULTS_DIR = EVALS_DIR / "results"
 BASELINES_DIR = EVALS_DIR / "baselines"
+HELDOUT_BASELINE_PATH = BASELINES_DIR / "e2e_heldout_final.json"
 
 #: Matches our ID formats: used to decide whether a "lookup" question is
 #: ID-anchored (and should therefore route to id_lookup).
@@ -204,8 +213,8 @@ def missing_api_key_error(settings: Settings) -> str | None:
     return None
 
 
-def run_eval(llm: LLMClient, settings: Settings, reps: int) -> dict:
-    gold = load_gold()
+def run_eval(llm: LLMClient, settings: Settings, reps: int, gold_path: Path = GOLD_PATH) -> dict:
+    gold = load_gold(gold_path)
     manifest = json.loads((KB_DIR / "manifest.json").read_text(encoding="utf-8"))
     entity_names = load_entity_names(KB_DIR)
 
@@ -400,11 +409,27 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--reps", type=int, default=1)
     parser.add_argument("--save-baseline", default=None, help="write evals/baselines/<name>.json")
+    parser.add_argument(
+        "--heldout", action="store_true",
+        help="evaluate against evals/kb_heldout.jsonl instead of kb_gold.jsonl",
+    )
+    parser.add_argument(
+        "--final", action="store_true",
+        help="required alongside --heldout; the held-out set is evaluated once, at "
+        "submission time, not during iteration",
+    )
     args = parser.parse_args()
 
     reps_error = reps_guard_error(args.reps, args.save_baseline)
     if reps_error:
         parser.error(reps_error)
+
+    manifest = json.loads((KB_DIR / "manifest.json").read_text(encoding="utf-8"))
+    heldout_error = heldout_guard_error(
+        args.heldout, args.final, manifest["kb_version"], os.environ
+    )
+    if heldout_error:
+        parser.error(heldout_error)
 
     settings = Settings()
     key_error = missing_api_key_error(settings)
@@ -413,8 +438,9 @@ def main() -> None:
 
     llm = AnthropicClient(settings)
 
+    gold_path = HELDOUT_PATH if args.heldout else GOLD_PATH
     try:
-        summary = run_eval(llm, settings, args.reps)
+        summary = run_eval(llm, settings, args.reps, gold_path=gold_path)
     except CostLimitExceeded as exc:
         print(f"ABORTED: {exc}")
         sys.exit(1)
@@ -428,7 +454,13 @@ def main() -> None:
     out_path.write_text(json.dumps(payload, indent=2, default=str), encoding="utf-8")
     print(f"\nWrote {out_path}")
 
-    if args.save_baseline:
+    if args.heldout:
+        BASELINES_DIR.mkdir(parents=True, exist_ok=True)
+        HELDOUT_BASELINE_PATH.write_text(
+            json.dumps(payload, indent=2, default=str), encoding="utf-8"
+        )
+        print(f"Wrote {HELDOUT_BASELINE_PATH}")
+    elif args.save_baseline:
         BASELINES_DIR.mkdir(parents=True, exist_ok=True)
         baseline_path = BASELINES_DIR / f"{args.save_baseline}.json"
         baseline_path.write_text(json.dumps(payload, indent=2, default=str), encoding="utf-8")

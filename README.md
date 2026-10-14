@@ -63,6 +63,24 @@ run costs about US$0.16. These numbers are from the development set the
 system was tuned against, so they are optimistic; a sealed 15-question
 held-out set exists to give the unbiased number (see Evaluation below).
 
+**Held-out results** (15 unseen questions, run once at submission): 14/15
+correct.
+
+| Question type | Correct |
+| --- | --- |
+| ID lookup | 3/3 |
+| Aggregation (SQL) | 3/3 |
+| Semantic (no shared keywords) | 1/2 |
+| Cross-document | 3/3 |
+| Policy (from the PDF) | 2/2 |
+| Unanswerable (must refuse) | 2/2 |
+
+Route accuracy was 15/15 and citation validity 12/12. The one miss was a
+semantic question where the system answered "not in the knowledge base"
+instead of finding the right session: a false refusal, not a wrong or
+fabricated answer, so it failed safe. Full result in
+[`evals/baselines/e2e_heldout_final.json`](evals/baselines/e2e_heldout_final.json).
+
 ## Part 2: n8n agent with tools, extraction and verification
 
 The agent turns 9 messy RSVP emails and 2 calendar events into a verified

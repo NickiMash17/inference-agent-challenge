@@ -1,0 +1,373 @@
+{
+  "timestamp": "20261014T190731Z",
+  "kb_version": "1.0.3",
+  "git_commit_sha": "8564c765f840d92727ce4ef6df365e5bf1ff77f9",
+  "router_model": "claude-haiku-5-5",
+  "answer_model": "claude-sonnet-5-5",
+  "reps": 1,
+  "n_gold_items": 15,
+  "n_queries_total": 15,
+  "by_answer_type": {
+    "lookup": {
+      "correct": 3,
+      "n": 3
+    },
+    "aggregation": {
+      "correct": 3,
+      "n": 3
+    },
+    "cross_doc": {
+      "correct": 3,
+      "n": 3
+    },
+    "policy": {
+      "correct": 2,
+      "n": 2
+    },
+    "semantic": {
+      "correct": 1,
+      "n": 2
+    },
+    "negative": {
+      "correct": 2,
+      "n": 2
+    }
+  },
+  "route_accuracy": {
+    "correct": 15,
+    "n": 15
+  },
+  "citation_validity": {
+    "valid_or_refused": 12,
+    "n": 12
+  },
+  "negative_refusal": {
+    "refused": 2,
+    "n": 2
+  },
+  "false_refusals_on_answerable_items": 1,
+  "latency_ms": {
+    "p50": 3299.14,
+    "p95": 10501.04
+  },
+  "cost_usd": {
+    "total": 0.0737,
+    "per_query": 0.004916
+  },
+  "inconsistent_items": [],
+  "per_item_records": {
+    "H-001": [
+      {
+        "question": "What is the title of session S-008?",
+        "answer_type": "lookup",
+        "expected_value": "Vector Databases: A Practical Comparison",
+        "answer": "Session S-008 is titled \"Vector Databases: A Practical Comparison\".",
+        "route": "id_lookup",
+        "route_correct": true,
+        "citations": [
+          "sessions.csv#S-008"
+        ],
+        "invalid_citations": [],
+        "not_in_kb": false,
+        "low_confidence": false,
+        "correct": true,
+        "cost_usd": 0.007052,
+        "latency_s": 3.333243600005517,
+        "sql": null,
+        "errors": []
+      }
+    ],
+    "H-002": [
+      {
+        "question": "Which room is session S-009 held in?",
+        "answer_type": "lookup",
+        "expected_value": "R-05",
+        "answer": "Session S-009, \"AI in African Fintech: What's Working,\" is held in the Terrace Room (room R-05) on Day 1 (2026-11-18), 11:30-12:30.",
+        "route": "id_lookup",
+        "route_correct": true,
+        "citations": [
+          "sessions.csv#S-009",
+          "venue_guide.pdf#rooms:R-05"
+        ],
+        "invalid_citations": [],
+        "not_in_kb": false,
+        "low_confidence": false,
+        "correct": true,
+        "cost_usd": 0.007146,
+        "latency_s": 2.7150119000070845,
+        "sql": null,
+        "errors": []
+      }
+    ],
+    "H-003": [
+      {
+        "question": "What organisation is speaker SP-005 affiliated with?",
+        "answer_type": "lookup",
+        "expected_value": "Quantum Ridge Technologies",
+        "answer": "Speaker SP-005, Troy Harris, is affiliated with Quantum Ridge Technologies, where they are a VP of Engineering.",
+        "route": "id_lookup",
+        "route_correct": true,
+        "citations": [
+          "speakers.json#SP-005"
+        ],
+        "invalid_citations": [],
+        "not_in_kb": false,
+        "low_confidence": false,
+        "correct": true,
+        "cost_usd": 0.0057,
+        "latency_s": 2.1020704000038677,
+        "sql": null,
+        "errors": []
+      }
+    ],
+    "H-004": [
+      {
+        "question": "How many sessions in the MLOps track are going ahead?",
+        "answer_type": "aggregation",
+        "expected_value": 8,
+        "answer": "There are 8 active sessions in the MLOps track.",
+        "route": "sql",
+        "route_correct": true,
+        "citations": [
+          "sql:bb118a1f74d6"
+        ],
+        "invalid_citations": [],
+        "not_in_kb": false,
+        "low_confidence": false,
+        "correct": true,
+        "cost_usd": 0.0021531000000000002,
+        "latency_s": 9.201035800011596,
+        "sql": "SELECT COUNT(*) AS session_count FROM sessions_active WHERE track = 'MLOps'",
+        "errors": []
+      }
+    ],
+    "H-005": [
+      {
+        "question": "How many Advanced-level sessions are going ahead?",
+        "answer_type": "aggregation",
+        "expected_value": 13,
+        "answer": "There are 13 Advanced-level sessions going ahead, based on the count of Advanced-level sessions in the active sessions table.",
+        "route": "sql",
+        "route_correct": true,
+        "citations": [
+          "sql:362cbf56a2cf"
+        ],
+        "invalid_citations": [],
+        "not_in_kb": false,
+        "low_confidence": false,
+        "correct": true,
+        "cost_usd": 0.002407,
+        "latency_s": 6.699720200005686,
+        "sql": "SELECT COUNT(*) AS advanced_session_count FROM sessions_active WHERE level = 'Advanced'",
+        "errors": []
+      }
+    ],
+    "H-006": [
+      {
+        "question": "What is the average capacity of RAG track sessions that are going ahead, rounded to 1 decimal place?",
+        "answer_type": "aggregation",
+        "expected_value": 89.9,
+        "answer": "The average capacity of active RAG track sessions is 89.9.",
+        "route": "sql",
+        "route_correct": true,
+        "citations": [
+          "sql:1567ab2aee5f"
+        ],
+        "invalid_citations": [],
+        "not_in_kb": false,
+        "low_confidence": false,
+        "correct": true,
+        "cost_usd": 0.0022532,
+        "latency_s": 4.4888614999945275,
+        "sql": "SELECT ROUND(AVG(capacity), 1) AS avg_capacity FROM sessions_active WHERE track = 'RAG'",
+        "errors": []
+      }
+    ],
+    "H-007": [
+      {
+        "question": "Which organisation does the speaker presenting session S-011 work for?",
+        "answer_type": "cross_doc",
+        "expected_value": "Ubuntu Intelligence",
+        "answer": "The speaker presenting session S-011 (\"Monitoring Model Drift in the Wild\"), Walter Webb, works for Ubuntu Intelligence, where they are a Developer Advocate.",
+        "route": "id_lookup",
+        "route_correct": true,
+        "citations": [
+          "sessions.csv#S-011",
+          "speakers.json#SP-021"
+        ],
+        "invalid_citations": [],
+        "not_in_kb": false,
+        "low_confidence": false,
+        "correct": true,
+        "cost_usd": 0.004706,
+        "latency_s": 1.7292962999999872,
+        "sql": null,
+        "errors": []
+      }
+    ],
+    "H-008": [
+      {
+        "question": "Is the room used for session S-012 wheelchair accessible?",
+        "answer_type": "cross_doc",
+        "expected_value": "Yes",
+        "answer": "Yes. Session S-012 (\"Chunking Strategies that Actually Work\") is held in Workshop 1 (room R-03), which is wheelchair accessible.",
+        "route": "id_lookup",
+        "route_correct": true,
+        "citations": [
+          "sessions.csv#S-012",
+          "venue_guide.pdf#rooms:R-03"
+        ],
+        "invalid_citations": [],
+        "not_in_kb": false,
+        "low_confidence": false,
+        "correct": true,
+        "cost_usd": 0.004202,
+        "latency_s": 1.5642764000003808,
+        "sql": null,
+        "errors": []
+      }
+    ],
+    "H-009": [
+      {
+        "question": "Does the room hosting session S-013 have a hearing loop?",
+        "answer_type": "cross_doc",
+        "expected_value": "No",
+        "answer": "No. Session S-013 (\"Human-in-the-Loop Agent Design\") is held in Workshop 2 (room R-04), and the venue guide states that R-04 does not have a hearing loop.",
+        "route": "id_lookup",
+        "route_correct": true,
+        "citations": [
+          "sessions.csv#S-013",
+          "venue_guide.pdf#rooms:R-04"
+        ],
+        "invalid_citations": [],
+        "not_in_kb": false,
+        "low_confidence": false,
+        "correct": true,
+        "cost_usd": 0.004306,
+        "latency_s": 3.7680072000002838,
+        "sql": null,
+        "errors": []
+      }
+    ],
+    "H-010": [
+      {
+        "question": "How many minutes after a session's start time might a late attendee be asked to wait for a break before entering?",
+        "answer_type": "policy",
+        "expected_value": 10,
+        "answer": "Attendees arriving more than 10 minutes after a session's start time may be asked to wait for a suitable break before entering, to minimise disruption.",
+        "route": "retrieve",
+        "route_correct": true,
+        "citations": [
+          "venue_guide.pdf#policies:Late arrival"
+        ],
+        "invalid_citations": [],
+        "not_in_kb": false,
+        "low_confidence": false,
+        "correct": true,
+        "cost_usd": 0.0043153,
+        "latency_s": 3.299138199996378,
+        "sql": null,
+        "errors": []
+      }
+    ],
+    "H-011": [
+      {
+        "question": "Where must an attendee who doesn't want to be recorded sit?",
+        "answer_type": "policy",
+        "expected_value": "the designated no-recording section at the back of each room",
+        "answer": "Attendees who do not wish to be recorded must sit in the designated no-recording section at the back of each room.",
+        "route": "retrieve",
+        "route_correct": true,
+        "citations": [
+          "venue_guide.pdf#policies:Recording consent"
+        ],
+        "invalid_citations": [],
+        "not_in_kb": false,
+        "low_confidence": false,
+        "correct": true,
+        "cost_usd": 0.0034219000000000003,
+        "latency_s": 2.5884339999975055,
+        "sql": null,
+        "errors": []
+      }
+    ],
+    "H-012": [
+      {
+        "question": "Which talk evaluates several storage systems for embeddings and weighs how they perform in real deployments?",
+        "answer_type": "semantic",
+        "expected_value": "S-008",
+        "answer": "Not in the knowledge base. None of the provided context describes a talk that evaluates storage systems for embeddings (e.g., vector stores) or compares their real-world performance. The closest sessions are \"Evaluating RAG Pipelines at Scale\" (S-020) and \"Feature Stores Revisited for the LLM Era\" (S-016), but their listings give no details indicating they cover embedding storage comparisons.",
+        "route": "rewrite_retrieve",
+        "route_correct": true,
+        "citations": [],
+        "invalid_citations": [],
+        "not_in_kb": true,
+        "low_confidence": false,
+        "correct": false,
+        "cost_usd": 0.0085551,
+        "latency_s": 5.719727499999863,
+        "sql": null,
+        "errors": []
+      }
+    ],
+    "H-013": [
+      {
+        "question": "Which session covers watching for a deployed AI system's behaviour gradually changing after release?",
+        "answer_type": "semantic",
+        "expected_value": "S-011",
+        "answer": "The session \"Monitoring Model Drift in the Wild\" (S-011) covers this topic. It is a Beginner-level MLOps track session on Day 1 (2026-11-18), 13:30-14:30, in Hall B (room R-02), presented by Walter Webb of Ubuntu Intelligence.",
+        "route": "rewrite_retrieve",
+        "route_correct": true,
+        "citations": [
+          "sessions.csv#S-011"
+        ],
+        "invalid_citations": [],
+        "not_in_kb": false,
+        "low_confidence": false,
+        "correct": true,
+        "cost_usd": 0.007905800000000001,
+        "latency_s": 13.534378199998173,
+        "sql": null,
+        "errors": []
+      }
+    ],
+    "H-014": [
+      {
+        "question": "Is there a cloakroom for luggage storage at the venue?",
+        "answer_type": "negative",
+        "expected_value": "NOT_IN_KB",
+        "answer": "Not in the knowledge base.",
+        "route": "retrieve",
+        "route_correct": true,
+        "citations": [],
+        "invalid_citations": [],
+        "not_in_kb": true,
+        "low_confidence": false,
+        "correct": true,
+        "cost_usd": 0.0030118,
+        "latency_s": 3.2646836999992956,
+        "sql": null,
+        "errors": []
+      }
+    ],
+    "H-015": [
+      {
+        "question": "What is the Atlas AI Summit's carbon offset program?",
+        "answer_type": "negative",
+        "expected_value": "NOT_IN_KB",
+        "answer": "Not in the knowledge base.",
+        "route": "retrieve",
+        "route_correct": true,
+        "citations": [],
+        "invalid_citations": [],
+        "not_in_kb": true,
+        "low_confidence": false,
+        "correct": true,
+        "cost_usd": 0.0066088,
+        "latency_s": 2.87622110000666,
+        "sql": null,
+        "errors": []
+      }
+    ]
+  }
+}

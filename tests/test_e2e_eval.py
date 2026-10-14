@@ -15,9 +15,12 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from evals.e2e_eval import (  # noqa: E402
+    GOLD_PATH,
+    HELDOUT_PATH,
     _extract_number,
     check_correctness,
     expected_routes,
+    heldout_guard_error,
     missing_api_key_error,
     reps_guard_error,
 )
@@ -220,3 +223,55 @@ def test_missing_api_key_error_detects_absence():
 def test_missing_api_key_error_allows_a_present_key():
     settings = Settings(_env_file=None, atlas_anthropic_api_key="sk-fake-for-this-test")
     assert missing_api_key_error(settings) is None
+
+
+# --- --heldout (reusing evals/retrieval_eval.py's heldout_guard_error) ------
+#
+# heldout_guard_error itself is exhaustively covered by
+# tests/test_retrieval_eval.py; these just confirm e2e_eval.py wires the
+# SAME function in correctly (it's imported, not reimplemented) and that a
+# --heldout run is refused by default. No test here calls main() or
+# run_eval(), so there is no path from this file to an actual held-out
+# evaluation.
+
+
+def test_heldout_guard_is_the_same_function_retrieval_eval_uses():
+    from evals.retrieval_eval import heldout_guard_error as retrieval_heldout_guard_error
+
+    assert heldout_guard_error is retrieval_heldout_guard_error
+
+
+def test_non_heldout_e2e_runs_are_never_blocked():
+    assert heldout_guard_error(heldout=False, final=False, kb_version="1.0.3", env={}) is None
+
+
+def test_heldout_e2e_run_without_final_is_refused():
+    error = heldout_guard_error(heldout=True, final=False, kb_version="1.0.3", env={})
+    assert error is not None
+    assert "--final" in error
+
+
+def test_heldout_e2e_run_without_confirm_env_var_is_refused():
+    error = heldout_guard_error(heldout=True, final=True, kb_version="1.0.3", env={})
+    assert error is not None
+    assert "HELDOUT_CONFIRM" in error
+
+
+def test_heldout_e2e_run_with_stale_confirm_value_is_refused():
+    error = heldout_guard_error(
+        heldout=True, final=True, kb_version="1.0.3", env={"HELDOUT_CONFIRM": "1.0.2"}
+    )
+    assert error is not None
+
+
+def test_heldout_e2e_run_with_matching_confirm_value_is_allowed():
+    error = heldout_guard_error(
+        heldout=True, final=True, kb_version="1.0.3", env={"HELDOUT_CONFIRM": "1.0.3"}
+    )
+    assert error is None
+
+
+def test_gold_and_heldout_paths_point_at_different_files():
+    assert GOLD_PATH.name == "kb_gold.jsonl"
+    assert HELDOUT_PATH.name == "kb_heldout.jsonl"
+    assert GOLD_PATH != HELDOUT_PATH
