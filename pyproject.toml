@@ -11,6 +11,10 @@ dependencies = [
     "pandas>=2.2",
     "pdfplumber>=0.11",
     "pydantic>=2.9",
+    "anthropic>=0.40",
+    "python-dotenv>=1.0",
+    "pydantic-settings>=2.6",
+    "sqlglot>=25.0",
 ]
 
 [dependency-groups]
@@ -35,3 +39,7 @@ select = ["E", "F", "I", "UP", "B"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "live: requires a real ATLAS_ANTHROPIC_API_KEY and makes real API calls (skipped by default)",
+]
+addopts = "-m 'not live'"

@@ -58,7 +58,25 @@ def get_connection(kb_dir: Path) -> duckdb.DuckDBPyConnection:
 
     con.execute("CREATE VIEW sessions_active AS SELECT * FROM sessions WHERE status != 'Cancelled'")
 
+    _lock_down(con)
     return con
+
+
+def _lock_down(con: duckdb.DuckDBPyConnection) -> None:
+    """Engine-level defence for guarded text-to-SQL (rag/sql_agent.py):
+    disables DuckDB's external-data access (read_csv/read_parquet/COPY/
+    ATTACH/INSTALL/LOAD/pandas replacement scans, etc.) and then locks the
+    configuration so it cannot be re-enabled by a later SET, even if the
+    sqlglot-based guard in sql_agent.py were somehow bypassed. Must run
+    after all tables are created: table creation here goes through Python
+    (pandas/pdfplumber), not DuckDB's own file-reading functions, so it
+    doesn't need external access and isn't affected by disabling it
+    afterwards. Setting names confirmed against duckdb_settings() for the
+    installed duckdb version (1.5.x): `enable_external_access`,
+    `lock_configuration`.
+    """
+    con.execute("SET enable_external_access = false")
+    con.execute("SET lock_configuration = true")
 
 
 def describe_schema(con: duckdb.DuckDBPyConnection) -> dict[str, list[tuple[str, str]]]:

@@ -120,6 +120,18 @@ CONFIGS: dict[str, RetrievalConfig] = {
     "v3_vector_only": RetrievalConfig(
         name="v3_vector_only", title_vectors=True, vector_only=True
     ),
+    # Used by the "retrieve" and "rewrite_retrieve" routes (rag/rewrite.py):
+    # these routes are definitionally non-ID, semantic-leaning queries, so
+    # fusion is vector-led (0.2 BM25 / 0.8 vector) rather than the 0.3/0.7
+    # default. "id_lookup" uses v6_id_pinning instead, not this config.
+    "v7_vector_led": RetrievalConfig(
+        name="v7_vector_led",
+        remove_stopwords=True,
+        weighted_rrf=True,
+        text_weights=(0.2, 0.8),
+        title_vectors=True,
+        fk_expansion=True,
+    ),
 }
 
 
@@ -463,3 +475,198 @@ class Pipeline:
 
         self.query_latencies.append(time.perf_counter() - t_start)
         return items
+
+
+# --- end-to-end answer orchestration (LLM layer) ----------------------------
+#
+# Imports from rag.router / rag.rewrite / rag.sql_agent / rag.answer are done
+# lazily, inside answer(), rather than at module level: those modules import
+# from this one (ID_PATTERN, Pipeline, RetrievedItem, expand_with_foreign_keys),
+# so importing them back at module level here would be circular.
+
+
+def build_answer_pipelines(
+    chunks: list[Chunk], cache_dir: Path | None = None
+) -> dict[str, Pipeline]:
+    """Builds the two retrieval pipelines answer() needs, once, so repeated
+    answer() calls (e.g. across an eval run) don't reload the embedding
+    model or re-embed the corpus each time."""
+    return {
+        "v6_id_pinning": Pipeline(CONFIGS["v6_id_pinning"], chunks, cache_dir=cache_dir),
+        "v7_vector_led": Pipeline(CONFIGS["v7_vector_led"], chunks, cache_dir=cache_dir),
+    }
+
+
+@dataclass
+class AnswerResult:
+    """The full, user-facing-safe result of answer(). Never constructed by
+    raising an exception out of answer() - failures are recorded in
+    `errors` and surfaced as a plain-language `answer` instead."""
+
+    query: str
+    route: str
+    fallback_reason: str | None
+    rewrites: list[str]
+    #: [{"source_ref": ..., "score": ..., "expanded": bool}, ...]
+    retrieved: list[dict]
+    sql_result: object | None  # rag.sql_agent.SQLResult, typed loosely to avoid the import cycle
+    answer: str
+    citations: list[str]
+    not_in_kb: bool
+    low_confidence: bool
+    invalid_citations: list[str]
+    stage_latencies_s: dict[str, float]
+    input_tokens: int
+    output_tokens: int
+    cost_usd: float
+    errors: list[str]
+
+
+def _safe_fallback_result(
+    query: str, message: str, error: str, stage_latencies: dict[str, float],
+    input_tokens: int, output_tokens: int, cost_usd: float,
+) -> AnswerResult:
+    return AnswerResult(
+        query=query,
+        route="out_of_scope",
+        fallback_reason=None,
+        rewrites=[],
+        retrieved=[],
+        sql_result=None,
+        answer=message,
+        citations=[],
+        not_in_kb=False,
+        low_confidence=True,
+        invalid_citations=[],
+        stage_latencies_s=stage_latencies,
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
+        cost_usd=cost_usd,
+        errors=[error],
+    )
+
+
+def answer(
+    query: str,
+    *,
+    con,
+    schema: dict[str, list[tuple[str, str]]],
+    retrieval_pipelines: dict[str, Pipeline],
+    llm,
+    router_model: str,
+    answer_model: str,
+) -> AnswerResult:
+    """Routes, retrieves/queries, and answers `query`. Never raises to the
+    caller: any unexpected failure becomes a user-safe AnswerResult with the
+    error recorded in `errors`."""
+    from rag.answer import answer_from_context, build_context_from_chunks, build_context_from_sql
+    from rag.rewrite import retrieve_with_rewrites
+    from rag.router import route as route_query
+    from rag.sql_agent import generate_and_run_sql
+
+    errors: list[str] = []
+    stage_latencies: dict[str, float] = {}
+    input_tokens = 0
+    output_tokens = 0
+    cost_usd = 0.0
+
+    def _track(llm_result) -> None:
+        nonlocal input_tokens, output_tokens, cost_usd
+        if llm_result is not None:
+            input_tokens += llm_result.usage.input_tokens
+            output_tokens += llm_result.usage.output_tokens
+            cost_usd += llm_result.usage.cost_usd
+
+    try:
+        t0 = time.perf_counter()
+        route_outcome = route_query(query, llm, router_model, list(schema.keys()))
+        stage_latencies["route"] = time.perf_counter() - t0
+        _track(route_outcome.llm_result)
+        if route_outcome.fallback_reason:
+            errors.append(route_outcome.fallback_reason)
+
+        route_name = route_outcome.route
+        rewrites: list[str] = []
+        retrieved_items: list[RetrievedItem] = []
+        sql_result = None
+        context = "(No context retrieved: this question appears to be out of scope " \
+                  "for this knowledge base.)"
+        valid_refs: set[str] = set()
+
+        if route_name == "sql":
+            t0 = time.perf_counter()
+            sql_result = generate_and_run_sql(query, con, llm, answer_model, schema)
+            stage_latencies["sql"] = time.perf_counter() - t0
+            if sql_result.error:
+                errors.append(f"sql error: {sql_result.error}")
+            context, valid_refs = build_context_from_sql(sql_result)
+
+        elif route_name == "id_lookup":
+            t0 = time.perf_counter()
+            retrieved_items = retrieval_pipelines["v6_id_pinning"].search(query, k=5)
+            stage_latencies["retrieve"] = time.perf_counter() - t0
+            context, valid_refs = build_context_from_chunks(retrieved_items)
+
+        elif route_name in ("retrieve", "rewrite_retrieve"):
+            t0 = time.perf_counter()
+            retrieved_items, rewrites, rewrite_llm_result, rewrite_fallback = (
+                retrieve_with_rewrites(
+                    query,
+                    retrieval_pipelines["v7_vector_led"],
+                    llm,
+                    router_model,
+                    k=5,
+                    use_rewrites=(route_name == "rewrite_retrieve"),
+                )
+            )
+            stage_latencies["retrieve"] = time.perf_counter() - t0
+            _track(rewrite_llm_result)
+            if rewrite_fallback:
+                errors.append(rewrite_fallback)
+            context, valid_refs = build_context_from_chunks(retrieved_items)
+
+        # route_name == "out_of_scope": no retrieval, default context stands.
+
+        t0 = time.perf_counter()
+        stage_result = answer_from_context(query, context, valid_refs, llm, answer_model)
+        stage_latencies["answer"] = time.perf_counter() - t0
+        _track(stage_result.llm_result)
+        if stage_result.fallback_reason:
+            errors.append(stage_result.fallback_reason)
+
+        return AnswerResult(
+            query=query,
+            route=route_name,
+            fallback_reason=route_outcome.fallback_reason,
+            rewrites=rewrites,
+            retrieved=[
+                {
+                    "source_ref": item.chunk.source_ref,
+                    "score": item.score,
+                    "expanded": item.expanded,
+                }
+                for item in retrieved_items
+            ],
+            sql_result=sql_result,
+            answer=stage_result.answer,
+            citations=stage_result.citations,
+            not_in_kb=stage_result.not_in_kb,
+            low_confidence=stage_result.low_confidence,
+            invalid_citations=stage_result.invalid_citations,
+            stage_latencies_s=stage_latencies,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            cost_usd=cost_usd,
+            errors=errors,
+        )
+    except Exception as exc:  # this boundary must never raise to the caller
+        errors.append(f"unexpected pipeline error: {exc!r}")
+        return _safe_fallback_result(
+            query,
+            "Sorry, something went wrong while answering this question.",
+            errors[-1],
+            stage_latencies,
+            input_tokens,
+            output_tokens,
+            cost_usd,
+        )
