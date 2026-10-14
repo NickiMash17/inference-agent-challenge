@@ -1,0 +1,191 @@
+{
+  "_comment": "Answer key for data/synthetic/part2_seed.md. Not used by any Part 1 code; fixture content for the separately-built Part 2 (n8n) agent.",
+  "directory_url": "https://raw.githubusercontent.com/NickiMash17/inference-agent-challenge/main/data/kb/speakers.json",
+  "planted_errors": [
+    {
+      "id": "err-1-phone-format",
+      "source": "email",
+      "location": "Email 2 of 9 (subject: 're: Atlas AI Summit attendance')",
+      "attendee": "Andrew Kane",
+      "speaker_id": "SP-013",
+      "field": "phone",
+      "planted_value": "087 159 2445",
+      "correct_value": "0871592445",
+      "resolution": "Same digits as the directory phone for SP-013, just space-separated. Normalize by stripping non-digit characters before comparing; no identity ambiguity."
+    },
+    {
+      "id": "err-2-misspelled-org",
+      "source": "email",
+      "location": "Email 3 of 9 (subject: 'RSVP: Atlas AI Summit')",
+      "attendee": "Latoya Wilson",
+      "speaker_id": "SP-016",
+      "field": "organisation",
+      "planted_value": "Silver Line Robotics",
+      "correct_value": "Silverline Robotics",
+      "resolution": "Name and email match SP-016 exactly; organisation should be corrected to the directory spelling."
+    },
+    {
+      "id": "err-3-missing-email",
+      "source": "email",
+      "location": "Email 4 of 9 (subject: 'Atlas Summit - confirming attendance')",
+      "attendee": "Joseph Torres",
+      "speaker_id": "SP-019",
+      "field": "email",
+      "planted_value": null,
+      "correct_value": "joseph.torres@example.org",
+      "resolution": "No email given in the body at all. Name and phone (073-359-1551) match SP-019 exactly, so the email can be backfilled from the directory."
+    },
+    {
+      "id": "err-4-duplicate-rsvp",
+      "source": "email",
+      "location": "Email 8 of 9 (original) and Email 9 of 9 (duplicate, subject: 'Atlas AI Summit - RSVP (sorry, resending)')",
+      "attendee": "Paige Williams",
+      "speaker_id": "SP-008",
+      "field": "full_name",
+      "planted_value": "Paige Willams",
+      "correct_value": "Paige Williams",
+      "resolution": "Two RSVPs from the same person (identical email paige.williams@example.com and phone +27643819886); the second has the surname misspelled 'Willams'. Deduplicate to one attendee using the directory spelling SP-008."
+    },
+    {
+      "id": "err-5-identity-collision",
+      "source": "email",
+      "location": "Email 5 of 9 (subject: 'RSVP - Atlas AI Summit 2026')",
+      "attendee": "John Mokoena / Nova Analytics",
+      "speaker_id": null,
+      "field": "identity",
+      "planted_value": {
+        "name": "John Mokoena",
+        "organisation": "Nova Analytics",
+        "email": "john.mokoena@example.org",
+        "phone": "083 400 0938"
+      },
+      "correct_value": "AMBIGUOUS - flag for human review",
+      "resolution": "Name spelling 'John' matches SP-002 (Ironwood AI Research) exactly; organisation 'Nova Analytics' matches SP-001 'Jon Mokoena' exactly. Email and phone match neither speaker exactly. Do not silently assign to either SP-001 or SP-002 - this should surface as a flagged, unresolved identity conflict in the agent's output.",
+      "candidates": ["SP-001", "SP-002"]
+    },
+    {
+      "id": "err-6-email-mismatch",
+      "source": "email",
+      "location": "Email 6 of 9 (subject: 'Re: Atlas AI Summit — RSVP')",
+      "attendee": "Leslie Frey",
+      "speaker_id": "SP-011",
+      "field": "email",
+      "planted_value": "lesliefrey@example.com",
+      "correct_value": "leslie.frey@example.org",
+      "resolution": "Name, organisation, and phone (084-595-7566) all match SP-011 exactly, so identity is confident; the RSVP email differs from the directory email on file. Flag the discrepancy and treat the directory email as canonical, keeping the RSVP email noted as an alternate/unconfirmed contact."
+    },
+    {
+      "id": "err-7-not-in-directory",
+      "source": "email",
+      "location": "Email 7 of 9 (subject: 'Atlas AI Summit - RSVP')",
+      "attendee": "Priya Naidoo",
+      "speaker_id": null,
+      "field": "identity",
+      "planted_value": "Priya Naidoo, DataForge Analytics",
+      "correct_value": "new non-speaker attendee, no directory match expected",
+      "resolution": "Not an error to correct - this person genuinely does not appear in speakers.json. She should be added to the attendee list as a delegate, not matched against any existing speaker record."
+    },
+    {
+      "id": "err-8-calendar-org-typo",
+      "source": "calendar",
+      "location": "Event 2 ('Atlas AI Summit — Closing Networking Lunch', 19 Nov 2026)",
+      "attendee": "Joseph Torres",
+      "speaker_id": "SP-019",
+      "field": "organisation",
+      "planted_value": "Horizon Cognitions",
+      "correct_value": "Horizon Cognition",
+      "resolution": "Extra trailing 's'. Same person appears in Email 4 (err-3-missing-email) with the organisation spelled correctly; the calendar typo can be corrected by cross-referencing either the directory or the email RSVP."
+    }
+  ],
+  "clean_control_case": {
+    "source": "email",
+    "location": "Email 1 of 9 (subject: 'RSVP - Atlas AI Summit')",
+    "attendee": "Troy Harris",
+    "speaker_id": "SP-005",
+    "note": "Fully correct RSVP: name, organisation, email, and phone (reformatted with spaces but same digits) all match the directory exactly. Also appears, uncorrupted, in Calendar Event 1."
+  },
+  "expected_final_deduplicated_attendee_list": [
+    {
+      "full_name": "Troy Harris",
+      "speaker_id": "SP-005",
+      "organisation": "Quantum Ridge Technologies",
+      "email": "troy.harris@example.org",
+      "phone": "0626295209",
+      "sources": ["Email 1", "Calendar Event 1"],
+      "status": "confirmed"
+    },
+    {
+      "full_name": "Andrew Kane",
+      "speaker_id": "SP-013",
+      "organisation": "Jacaranda Systems",
+      "email": "andrew.kane@example.org",
+      "phone": "0871592445",
+      "sources": ["Email 2", "Calendar Event 2"],
+      "status": "confirmed"
+    },
+    {
+      "full_name": "Latoya Wilson",
+      "speaker_id": "SP-016",
+      "organisation": "Silverline Robotics",
+      "email": "latoya.wilson@example.com",
+      "phone": null,
+      "sources": ["Email 3", "Calendar Event 1"],
+      "status": "confirmed",
+      "corrections_applied": ["organisation: 'Silver Line Robotics' -> 'Silverline Robotics'"]
+    },
+    {
+      "full_name": "Joseph Torres",
+      "speaker_id": "SP-019",
+      "organisation": "Horizon Cognition",
+      "email": "joseph.torres@example.org",
+      "phone": "073-359-1551",
+      "sources": ["Email 4", "Calendar Event 2"],
+      "status": "confirmed",
+      "corrections_applied": [
+        "email: backfilled from directory (none given in Email 4)",
+        "organisation: 'Horizon Cognitions' -> 'Horizon Cognition' (Calendar Event 2)"
+      ]
+    },
+    {
+      "full_name": "John Mokoena OR Jon Mokoena",
+      "speaker_id": null,
+      "organisation": "Nova Analytics (claimed) / Ironwood AI Research (SP-002 directory org)",
+      "email": "john.mokoena@example.org",
+      "phone": "083 400 0938",
+      "sources": ["Email 5"],
+      "status": "flagged_for_review",
+      "candidates": ["SP-001", "SP-002"],
+      "note": "Identity collision between SP-001 and SP-002; do not auto-resolve."
+    },
+    {
+      "full_name": "Leslie Frey",
+      "speaker_id": "SP-011",
+      "organisation": "Khanya AI Labs",
+      "email": "leslie.frey@example.org",
+      "phone": "084-595-7566",
+      "sources": ["Email 6"],
+      "status": "confirmed_with_flag",
+      "note": "RSVP email 'lesliefrey@example.com' differs from directory email; directory email kept as canonical, RSVP email noted as alternate contact."
+    },
+    {
+      "full_name": "Priya Naidoo",
+      "speaker_id": null,
+      "organisation": "DataForge Analytics",
+      "email": "priya.naidoo@example.com",
+      "phone": "082 310 4456",
+      "sources": ["Email 7"],
+      "status": "new_non_speaker_attendee"
+    },
+    {
+      "full_name": "Paige Williams",
+      "speaker_id": "SP-008",
+      "organisation": "Nova Analytics",
+      "email": "paige.williams@example.com",
+      "phone": "+27643819886",
+      "sources": ["Email 8", "Email 9 (duplicate, deduplicated)", "Calendar Event 1"],
+      "status": "confirmed",
+      "corrections_applied": ["name: 'Paige Willams' (Email 9) -> 'Paige Williams', duplicate RSVP merged"]
+    }
+  ],
+  "expected_final_attendee_count": 8
+}
