@@ -10,6 +10,14 @@
 // data/synthetic/part2_seed.md (copied here verbatim - see the comment
 // above EMAILS below if the two ever drift).
 //
+// It also unit-tests getEmailText() (duplicated from
+// n8n/code/01_build_extraction_prompt.js) against a synthetic raw Gmail API
+// message fixture - a nested multipart/mixed -> multipart/alternative
+// structure with base64url-encoded text/plain and text/html parts - since
+// that function was the fix for a live-run bug where the real Gmail
+// message shape wasn't being decoded at all (see the PR/commit history for
+// the original diagnosis).
+//
 // No network calls: speakers.json and the answer key are read from the
 // local filesystem, not fetched from GitHub.
 //
@@ -21,6 +29,135 @@ import { dirname, join } from "node:path";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
+
+// ---------------------------------------------------------------------
+// getEmailText (mirrors n8n/code/01_build_extraction_prompt.js and
+// n8n/code/03_build_retry_prompt.js)
+// ---------------------------------------------------------------------
+
+function encodeBase64Url(text) {
+  return Buffer.from(text, "utf8").toString("base64").replace(/\+/g, "-").replace(/\//g, "_");
+}
+
+function decodeBase64Url(data) {
+  if (!data) return "";
+  const normalized = data.replace(/-/g, "+").replace(/_/g, "/");
+  return Buffer.from(normalized, "base64").toString("utf8");
+}
+
+function stripHtml(html) {
+  return html
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .trim();
+}
+
+function findPartData(part, mimeType) {
+  if (!part) return null;
+  if (part.mimeType === mimeType && part.body && part.body.data) {
+    return part.body.data;
+  }
+  if (Array.isArray(part.parts)) {
+    for (const sub of part.parts) {
+      const found = findPartData(sub, mimeType);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function getEmailText(item) {
+  if (item.text && String(item.text).trim()) {
+    return { text: String(item.text).trim(), source: "text" };
+  }
+  if (item.textPlain && String(item.textPlain).trim()) {
+    return { text: String(item.textPlain).trim(), source: "textPlain" };
+  }
+
+  const payload = item.payload;
+
+  const plainPartData = payload ? findPartData(payload, "text/plain") : null;
+  if (plainPartData) {
+    const decoded = decodeBase64Url(plainPartData).trim();
+    if (decoded) return { text: decoded, source: "payload.parts(text/plain)" };
+  }
+
+  if (payload && payload.body && payload.body.data) {
+    const decoded = decodeBase64Url(payload.body.data).trim();
+    if (decoded) return { text: decoded, source: "payload.body.data" };
+  }
+
+  const htmlPartData = payload ? findPartData(payload, "text/html") : null;
+  if (htmlPartData) {
+    const decoded = stripHtml(decodeBase64Url(htmlPartData));
+    if (decoded) return { text: decoded, source: "payload.parts(text/html)" };
+  }
+
+  if (item.snippet && String(item.snippet).trim()) {
+    return { text: String(item.snippet).trim(), source: "snippet" };
+  }
+
+  return { text: "", source: "none" };
+}
+
+// A synthetic raw Gmail API message: multipart/mixed (as if it had an
+// attachment slot) wrapping multipart/alternative with text/plain and
+// text/html parts, both base64url-encoded - the shape the live run showed
+// Gmail - Get Many actually returns with Simplify OFF.
+const RAW_GMAIL_FIXTURE_PLAIN_TEXT =
+  "Hi,\n\nConfirming attendance.\n\nFixture Person\nFixture Org\nfixture.person@example.com\n082 000 0000";
+
+const RAW_GMAIL_FIXTURE = {
+  id: "fixture-message-id-1",
+  threadId: "fixture-thread-id-1",
+  labelIds: ["INBOX"],
+  snippet: "Hi, Confirming attendance. Fixture Person Fixture Org...",
+  payload: {
+    mimeType: "multipart/mixed",
+    headers: [
+      { name: "Subject", value: "RSVP - Fixture Test" },
+      { name: "From", value: "someone@gmail.com" },
+    ],
+    parts: [
+      {
+        mimeType: "multipart/alternative",
+        parts: [
+          {
+            mimeType: "text/plain",
+            body: { data: encodeBase64Url(RAW_GMAIL_FIXTURE_PLAIN_TEXT) },
+          },
+          {
+            mimeType: "text/html",
+            body: {
+              data: encodeBase64Url(
+                "<div dir=\"ltr\">Hi,<br><br>Confirming attendance.<br><br>Fixture Person<br>Fixture Org<br>fixture.person@example.com<br>082 000 0000</div>"
+              ),
+            },
+          },
+        ],
+      },
+    ],
+  },
+};
+
+// A second fixture with no decodable body at all, to prove the snippet
+// fallback at the end of the chain actually fires instead of returning "".
+const RAW_GMAIL_FIXTURE_SNIPPET_ONLY = {
+  id: "fixture-message-id-2",
+  threadId: "fixture-thread-id-2",
+  labelIds: ["INBOX"],
+  snippet: "Snippet-only fallback text",
+  payload: {
+    mimeType: "text/plain",
+    headers: [{ name: "Subject", value: "No body" }],
+    body: {},
+  },
+};
 
 // ---------------------------------------------------------------------
 // Seed data (verbatim from data/synthetic/part2_seed.md)
@@ -594,6 +731,31 @@ function score(attendees) {
 // ---------------------------------------------------------------------
 // Run
 // ---------------------------------------------------------------------
+
+console.log("getEmailText() against raw Gmail API fixtures:");
+
+const nestedMultipartResult = getEmailText(RAW_GMAIL_FIXTURE);
+const nestedMultipartOk =
+  nestedMultipartResult.source === "payload.parts(text/plain)" &&
+  nestedMultipartResult.text === RAW_GMAIL_FIXTURE_PLAIN_TEXT;
+console.log(
+  `  [${nestedMultipartOk ? "PASS" : "FAIL"}] nested multipart/mixed -> multipart/alternative -> ` +
+    `text/plain (source=${nestedMultipartResult.source})`
+);
+
+const snippetFallbackResult = getEmailText(RAW_GMAIL_FIXTURE_SNIPPET_ONLY);
+const snippetFallbackOk =
+  snippetFallbackResult.source === "snippet" &&
+  snippetFallbackResult.text === RAW_GMAIL_FIXTURE_SNIPPET_ONLY.snippet;
+console.log(
+  `  [${snippetFallbackOk ? "PASS" : "FAIL"}] no decodable body falls back to snippet ` +
+    `(source=${snippetFallbackResult.source})`
+);
+
+if (!nestedMultipartOk || !snippetFallbackOk) {
+  console.error("\ngetEmailText() fixture tests FAILED - stopping before the rest of the harness.");
+  process.exit(1);
+}
 
 const speakers = JSON.parse(readFileSync(join(ROOT, "data", "kb", "speakers.json"), "utf8"));
 

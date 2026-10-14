@@ -3,51 +3,51 @@
   "nodes": [
     {
       "parameters": {},
-      "id": "02439e04-9636-4058-87c8-ec2d77ee15ca",
+      "id": "84bde51b-46fc-4804-bb0f-cbca2ebc5c26",
       "name": "Manual Trigger",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
       "position": [
-        -400,
-        300
+        0,
+        304
       ]
     },
     {
       "parameters": {
-        "resource": "message",
         "operation": "getAll",
         "returnAll": true,
         "simple": false,
         "filters": {
           "q": "to:nene171408+atlas@gmail.com"
-        }
+        },
+        "options": {}
       },
-      "id": "51f65371-30cf-4e76-a0ea-e74f3d784513",
+      "id": "49448b9e-130d-4f58-bd08-0aadeb1f05fa",
       "name": "Gmail - Get Many",
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
       "position": [
-        -100,
+        304,
         0
       ],
+      "webhookId": "87f90f1b-7c7b-478e-9221-77131afa0a33",
       "credentials": {
         "gmailOAuth2": {
-          "id": "1",
+          "id": "Q0NXcGjREemCQu3O",
           "name": "Gmail account"
         }
       }
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "// Code node: \"Build Extraction Prompt\"\n// Runs once per Gmail message (Gmail node, Simplify OFF -> raw Gmail API\n// message resource). Decodes the plain-text body and builds the prompt for\n// the first extraction attempt against the Anthropic Messages API.\n//\n// Deliberately: the prompt below carries ONLY the decoded body text and\n// subject, never the Gmail \"From\" header or any sender metadata. That's a\n// structural choice, not just an instruction to the model - the model has\n// no way to use the From header for identity because it is never given to\n// it. Identity must come from the body/signature alone, which matches how\n// the seed data (data/synthetic/part2_seed.md) was built: every email is\n// actually sent from the same Gmail account.\n\nfunction decodeBase64Url(data) {\n  if (!data) return \"\";\n  const normalized = data.replace(/-/g, \"+\").replace(/_/g, \"/\");\n  return Buffer.from(normalized, \"base64\").toString(\"utf8\");\n}\n\nfunction stripHtml(html) {\n  return html\n    .replace(/<style[\\s\\S]*?<\\/style>/gi, \"\")\n    .replace(/<script[\\s\\S]*?<\\/script>/gi, \"\")\n    .replace(/<br\\s*\\/?>/gi, \"\\n\")\n    .replace(/<\\/p>/gi, \"\\n\")\n    .replace(/<[^>]+>/g, \"\")\n    .replace(/&nbsp;/g, \" \")\n    .replace(/&amp;/g, \"&\")\n    .trim();\n}\n\nfunction findPart(payload, mimeType) {\n  if (!payload) return null;\n  if (payload.mimeType === mimeType && payload.body && payload.body.data) {\n    return payload.body.data;\n  }\n  if (Array.isArray(payload.parts)) {\n    for (const part of payload.parts) {\n      const found = findPart(part, mimeType);\n      if (found) return found;\n    }\n  }\n  return null;\n}\n\nfunction getBodyText(payload) {\n  const plain = findPart(payload, \"text/plain\");\n  if (plain) return decodeBase64Url(plain).trim();\n\n  const html = findPart(payload, \"text/html\");\n  if (html) return stripHtml(decodeBase64Url(html));\n\n  if (payload && payload.body && payload.body.data) {\n    return decodeBase64Url(payload.body.data).trim();\n  }\n  return \"\";\n}\n\nfunction getHeader(payload, name) {\n  const headers = (payload && payload.headers) || [];\n  const header = headers.find(\n    (h) => h.name && h.name.toLowerCase() === name.toLowerCase()\n  );\n  return header ? header.value : \"\";\n}\n\nfunction buildPrompt(subject, bodyText) {\n  return [\n    \"You are extracting attendee contact details from a single conference\",\n    \"RSVP email for the Atlas AI Summit.\",\n    \"\",\n    \"Read ONLY the subject and body text below. Do not assume anything\",\n    \"about who sent this email - there is no reliable sender identity\",\n    \"available to you, so the attendee's name, organisation, email, and\",\n    \"phone must come only from what is written in the body/signature.\",\n    \"\",\n    `Subject: ${subject}`,\n    \"Body:\",\n    \"---\",\n    bodyText,\n    \"---\",\n    \"\",\n    \"Respond with ONLY a JSON object, no other text, no markdown code\",\n    \"fences, in exactly this shape:\",\n    '{\"name\": string or null, \"organisation\": string or null, ' +\n      '\"email\": string or null, \"phone\": string or null}',\n    \"\",\n    \"Use null for any field not stated in the body. Do not invent values.\",\n  ].join(\"\\n\");\n}\n\nreturn items.map((item, index) => {\n  const message = item.json;\n  const bodyText = getBodyText(message.payload);\n  const subject = getHeader(message.payload, \"Subject\");\n\n  return {\n    json: {\n      __kind: \"email\",\n      emailIndex: index + 1,\n      messageId: message.id || null,\n      subject,\n      bodyText,\n      attempt: 1,\n      prompt: buildPrompt(subject, bodyText),\n    },\n  };\n});\n"
+        "jsCode": "// Code node: \"Build Extraction Prompt\"\n// Runs once per Gmail message. Live-run diagnosis: with Simplify OFF, the\n// Gmail node returns the raw Gmail API message resource (id, threadId,\n// labelIds, snippet, payload with base64url-encoded parts) - there is no\n// top-level \"text\" field. The old body-decoding here missed that shape (or\n// missed some variant of it), so every prompt went out with an empty body,\n// which is why every Anthropic call had the same (~223) input_tokens and\n// came back all-null. getEmailText() below tries several shapes in order\n// and always records which one actually worked, in body_source, so this\n// is debuggable directly from the node's output next time.\n//\n// Deliberately: the prompt carries ONLY the decoded body text and subject,\n// never the Gmail \"From\" header or any sender metadata. That's a\n// structural choice - the model has no way to use the From header for\n// identity because it is never given to it. Identity must come from the\n// body/signature alone, matching how the seed data\n// (data/synthetic/part2_seed.md) was built: every email is actually sent\n// from the same Gmail account.\n\nfunction decodeBase64Url(data) {\n  if (!data) return \"\";\n  const normalized = data.replace(/-/g, \"+\").replace(/_/g, \"/\");\n  return Buffer.from(normalized, \"base64\").toString(\"utf8\");\n}\n\nfunction stripHtml(html) {\n  return html\n    .replace(/<style[\\s\\S]*?<\\/style>/gi, \"\")\n    .replace(/<script[\\s\\S]*?<\\/script>/gi, \"\")\n    .replace(/<br\\s*\\/?>/gi, \"\\n\")\n    .replace(/<\\/p>/gi, \"\\n\")\n    .replace(/<[^>]+>/g, \"\")\n    .replace(/&nbsp;/g, \" \")\n    .replace(/&amp;/g, \"&\")\n    .trim();\n}\n\n// Recursively searches a Gmail API payload (and nested multipart parts,\n// e.g. multipart/mixed -> multipart/alternative -> text/plain) for the\n// first part whose mimeType matches and whose body.data is non-empty.\nfunction findPartData(part, mimeType) {\n  if (!part) return null;\n  if (part.mimeType === mimeType && part.body && part.body.data) {\n    return part.body.data;\n  }\n  if (Array.isArray(part.parts)) {\n    for (const sub of part.parts) {\n      const found = findPartData(sub, mimeType);\n      if (found) return found;\n    }\n  }\n  return null;\n}\n\n// Tries, in order: item.text, item.textPlain, a recursive search of\n// item.payload.parts for text/plain, item.payload.body.data, a recursive\n// search for text/html (tags stripped), then item.snippet as a last\n// resort. Returns { text, source } so the source can be recorded on the\n// item for debugging.\nfunction getEmailText(item) {\n  if (item.text && String(item.text).trim()) {\n    return { text: String(item.text).trim(), source: \"text\" };\n  }\n  if (item.textPlain && String(item.textPlain).trim()) {\n    return { text: String(item.textPlain).trim(), source: \"textPlain\" };\n  }\n\n  const payload = item.payload;\n\n  const plainPartData = payload ? findPartData(payload, \"text/plain\") : null;\n  if (plainPartData) {\n    const decoded = decodeBase64Url(plainPartData).trim();\n    if (decoded) return { text: decoded, source: \"payload.parts(text/plain)\" };\n  }\n\n  if (payload && payload.body && payload.body.data) {\n    const decoded = decodeBase64Url(payload.body.data).trim();\n    if (decoded) return { text: decoded, source: \"payload.body.data\" };\n  }\n\n  const htmlPartData = payload ? findPartData(payload, \"text/html\") : null;\n  if (htmlPartData) {\n    const decoded = stripHtml(decodeBase64Url(htmlPartData));\n    if (decoded) return { text: decoded, source: \"payload.parts(text/html)\" };\n  }\n\n  if (item.snippet && String(item.snippet).trim()) {\n    return { text: String(item.snippet).trim(), source: \"snippet\" };\n  }\n\n  return { text: \"\", source: \"none\" };\n}\n\nfunction getHeader(payload, name) {\n  const headers = (payload && payload.headers) || [];\n  const header = headers.find(\n    (h) => h.name && h.name.toLowerCase() === name.toLowerCase()\n  );\n  return header ? header.value : \"\";\n}\n\nfunction buildPrompt(subject, bodyText) {\n  return [\n    \"You are extracting attendee contact details from a single conference\",\n    \"RSVP email for the Atlas AI Summit.\",\n    \"\",\n    \"Read ONLY the subject and body text below. Do not assume anything\",\n    \"about who sent this email - there is no reliable sender identity\",\n    \"available to you, so the attendee's name, organisation, email, and\",\n    \"phone must come only from what is written in the body/signature.\",\n    \"\",\n    `Subject: ${subject}`,\n    \"Body:\",\n    \"---\",\n    bodyText,\n    \"---\",\n    \"\",\n    \"Respond with ONLY a JSON object, no other text, no markdown code\",\n    \"fences, in exactly this shape:\",\n    '{\"name\": string or null, \"organisation\": string or null, ' +\n      '\"email\": string or null, \"phone\": string or null}',\n    \"\",\n    \"Use null for any field not stated in the body. Do not invent values.\",\n  ].join(\"\\n\");\n}\n\nreturn items.map((item, index) => {\n  const message = item.json;\n  const { text: bodyText, source: bodySource } = getEmailText(message);\n  const subject = getHeader(message.payload, \"Subject\");\n\n  return {\n    json: {\n      __kind: \"email\",\n      emailIndex: index + 1,\n      messageId: message.id || null,\n      subject,\n      bodyText,\n      body_source: bodySource,\n      attempt: 1,\n      prompt: buildPrompt(subject, bodyText),\n    },\n  };\n});\n"
       },
-      "id": "fd27239a-4fd6-472e-bc92-c678b167b86c",
+      "id": "8a7a7731-d216-4579-b31c-b81a3a2724e5",
       "name": "Build Extraction Prompt",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        150,
+        560,
         0
       ]
     },
@@ -75,32 +75,31 @@
         "jsonBody": "={{ JSON.stringify({ model: \"claude-haiku-5-5\", max_tokens: 300, messages: [ { role: \"user\", content: $json.prompt } ] }) }}",
         "options": {}
       },
-      "id": "afe0fc47-e504-4b4d-b2cb-d9db53f75200",
+      "id": "984cb0d2-05b7-455d-b94b-28ca2961e00e",
       "name": "Anthropic - Extract (Attempt 1)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        400,
+        800,
         0
       ],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "2",
-          "name": "Anthropic API"
+          "id": "uDpGK5ohZfckNcE4",
+          "name": "Header Auth account"
         }
       }
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "// Code node: \"Validate & Shape (Attempt 1)\"\n// Input: the Anthropic Messages API response for the FIRST extraction call.\n// Pulls sibling fields (subject, bodyText, emailIndex, attempt) back from\n// the \"Build Extraction Prompt\" node by name, since the HTTP Request node\n// in between replaces $json with the raw API response. n8n preserves 1:1\n// item pairing through HTTP Request, so $('Node Name').item is safe here.\n\nconst EMAIL_RE = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;\n\nfunction parseClaudeJson(text) {\n  if (!text) return { ok: false, reason: \"empty response text\" };\n  let cleaned = text.trim();\n  // Strip ```json ... ``` or ``` ... ``` fences if the model added them.\n  const fenceMatch = cleaned.match(/```(?:json)?\\s*([\\s\\S]*?)\\s*```/i);\n  if (fenceMatch) cleaned = fenceMatch[1].trim();\n  try {\n    return { ok: true, value: JSON.parse(cleaned) };\n  } catch (err) {\n    return { ok: false, reason: `invalid JSON: ${err.message}` };\n  }\n}\n\nfunction validate(extracted) {\n  if (!extracted || typeof extracted !== \"object\") {\n    return { valid: false, reason: \"extraction is not a JSON object\" };\n  }\n  if (!extracted.name || typeof extracted.name !== \"string\" || !extracted.name.trim()) {\n    return { valid: false, reason: \"name is missing or empty\" };\n  }\n  if (extracted.email && !EMAIL_RE.test(String(extracted.email).trim())) {\n    return { valid: false, reason: `email \"${extracted.email}\" is not a valid email format` };\n  }\n  return { valid: true, reason: null };\n}\n\nconst results = [];\nfor (let i = 0; i < items.length; i++) {\n  const response = items[i].json;\n  const prior = $(\"Build Extraction Prompt\").all()[i].json;\n\n  const textBlock =\n    response.content && response.content[0] && response.content[0].text;\n  const parsed = parseClaudeJson(textBlock);\n\n  let valid = false;\n  let reason = null;\n  let extracted = null;\n\n  if (!parsed.ok) {\n    reason = parsed.reason;\n  } else {\n    extracted = parsed.value;\n    const check = validate(extracted);\n    valid = check.valid;\n    reason = check.reason;\n  }\n\n  results.push({\n    json: {\n      __kind: \"email\",\n      emailIndex: prior.emailIndex,\n      messageId: prior.messageId,\n      subject: prior.subject,\n      bodyText: prior.bodyText,\n      attempt: prior.attempt,\n      valid,\n      reason,\n      name: extracted ? extracted.name || null : null,\n      organisation: extracted ? extracted.organisation || null : null,\n      email: extracted ? extracted.email || null : null,\n      phone: extracted ? extracted.phone || null : null,\n      extractionStatus: valid ? \"extracted_first_try\" : \"needs_retry\",\n      sources: [`Email ${prior.emailIndex}`],\n    },\n  });\n}\n\nreturn results;\n"
+        "jsCode": "// Code node: \"Validate & Shape (Attempt 1)\"\n// Input: the Anthropic Messages API response for the FIRST extraction call.\n// Pulls sibling fields (subject, bodyText, emailIndex, attempt) back from\n// the \"Build Extraction Prompt\" node by name, since the HTTP Request node\n// in between replaces $json with the raw API response. n8n preserves 1:1\n// item pairing through HTTP Request, so $('Node Name').item is safe here.\n//\n// Live-run diagnosis: reading `content[0].text` returned \"empty response\n// text\" even though a text block was present in `content`, because the\n// first content block isn't always the text block (a thinking/redacted\n// block can come first). Fixed by filtering content for type === \"text\"\n// and joining it, instead of indexing position 0.\n\nconst EMAIL_RE = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;\n\nfunction getResponseText(response) {\n  const blocks = Array.isArray(response.content) ? response.content : [];\n  return blocks\n    .filter((c) => c && c.type === \"text\")\n    .map((c) => c.text)\n    .join(\"\");\n}\n\nfunction parseClaudeJson(text) {\n  if (!text) return { ok: false, reason: \"empty response text\" };\n  let cleaned = text.trim();\n  // Strip ```json ... ``` or ``` ... ``` fences if the model added them.\n  const fenceMatch = cleaned.match(/```(?:json)?\\s*([\\s\\S]*?)\\s*```/i);\n  if (fenceMatch) cleaned = fenceMatch[1].trim();\n  try {\n    return { ok: true, value: JSON.parse(cleaned) };\n  } catch (err) {\n    return { ok: false, reason: `invalid JSON: ${err.message}` };\n  }\n}\n\nfunction validate(extracted) {\n  if (!extracted || typeof extracted !== \"object\") {\n    return { valid: false, reason: \"extraction is not a JSON object\" };\n  }\n  if (!extracted.name && !extracted.organisation && !extracted.email && !extracted.phone) {\n    return { valid: false, reason: \"no fields extracted\" };\n  }\n  if (!extracted.name || typeof extracted.name !== \"string\" || !extracted.name.trim()) {\n    return { valid: false, reason: \"name is missing or empty\" };\n  }\n  if (extracted.email && !EMAIL_RE.test(String(extracted.email).trim())) {\n    return { valid: false, reason: `email \"${extracted.email}\" is not a valid email format` };\n  }\n  return { valid: true, reason: null };\n}\n\nconst results = [];\nfor (let i = 0; i < items.length; i++) {\n  const response = items[i].json;\n  const prior = $(\"Build Extraction Prompt\").all()[i].json;\n\n  const textBlock = getResponseText(response);\n  const parsed = parseClaudeJson(textBlock);\n\n  let valid = false;\n  let reason = null;\n  let extracted = null;\n\n  if (!parsed.ok) {\n    reason = parsed.reason;\n  } else {\n    extracted = parsed.value;\n    const check = validate(extracted);\n    valid = check.valid;\n    reason = check.reason;\n  }\n\n  results.push({\n    json: {\n      __kind: \"email\",\n      emailIndex: prior.emailIndex,\n      messageId: prior.messageId,\n      subject: prior.subject,\n      bodyText: prior.bodyText,\n      body_source: prior.body_source,\n      attempt: prior.attempt,\n      valid,\n      reason,\n      name: extracted ? extracted.name || null : null,\n      organisation: extracted ? extracted.organisation || null : null,\n      email: extracted ? extracted.email || null : null,\n      phone: extracted ? extracted.phone || null : null,\n      extractionStatus: valid ? \"extracted_first_try\" : \"needs_retry\",\n      sources: [`Email ${prior.emailIndex}`],\n    },\n  });\n}\n\nreturn results;\n"
       },
-      "id": "35d296c6-059e-4e3b-88b6-07fdf12cb338",
+      "id": "1528dce1-45f2-47b1-9487-7cbe1340a3c9",
       "name": "Validate & Shape (Attempt 1)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        650,
+        1056,
         0
       ]
     },
@@ -110,7 +109,7 @@
           "combinator": "and",
           "conditions": [
             {
-              "id": "a5d98886-5708-49b5-a4f8-ad9f4b7f0776",
+              "id": "9e3155a7-71b8-4db8-9fdf-1ce6e18aa036",
               "leftValue": "={{ $json.valid }}",
               "rightValue": true,
               "operator": {
@@ -118,31 +117,36 @@
                 "operation": "equals"
               }
             }
-          ]
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          }
         },
         "options": {}
       },
-      "id": "4e6018e0-114d-4879-9dcc-c241dcf1e70d",
+      "id": "cb85710e-d9ec-400d-b0a3-fc8d04da428a",
       "name": "Valid? (Attempt 1)",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        900,
+        1312,
         0
       ]
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "// Code node: \"Build Retry Prompt\"\n// Input: items that failed validation after the first extraction attempt\n// (the FALSE branch of the \"Valid? (Attempt 1)\" IF node). Builds a second\n// prompt that shows the model its own invalid output and the validation\n// error, and asks it to correct it. This is the visible self-correction\n// step - its result is recorded by \"Validate & Shape (Retry)\" regardless\n// of whether the retry succeeds.\n\nfunction buildRetryPrompt(subject, bodyText, previousAttemptJson, reason) {\n  return [\n    \"Your previous attempt to extract attendee contact details from this\",\n    \"conference RSVP email was invalid. Fix it.\",\n    \"\",\n    `Validation error: ${reason}`,\n    \"\",\n    `Your previous output was: ${previousAttemptJson}`,\n    \"\",\n    \"Read ONLY the subject and body text below. Do not assume anything\",\n    \"about who sent this email - the attendee's name, organisation, email,\",\n    \"and phone must come only from what is written in the body/signature.\",\n    \"\",\n    `Subject: ${subject}`,\n    \"Body:\",\n    \"---\",\n    bodyText,\n    \"---\",\n    \"\",\n    \"Respond with ONLY a JSON object, no other text, no markdown code\",\n    \"fences, in exactly this shape:\",\n    '{\"name\": string or null, \"organisation\": string or null, ' +\n      '\"email\": string or null, \"phone\": string or null}',\n    \"\",\n    \"Use null for any field not stated in the body. Do not invent values.\",\n  ].join(\"\\n\");\n}\n\nreturn items.map((item) => {\n  const prior = item.json;\n  const previousAttemptJson = JSON.stringify({\n    name: prior.name,\n    organisation: prior.organisation,\n    email: prior.email,\n    phone: prior.phone,\n  });\n\n  return {\n    json: {\n      __kind: \"email\",\n      emailIndex: prior.emailIndex,\n      messageId: prior.messageId,\n      subject: prior.subject,\n      bodyText: prior.bodyText,\n      attempt: 2,\n      prompt: buildRetryPrompt(prior.subject, prior.bodyText, previousAttemptJson, prior.reason),\n    },\n  };\n});\n"
+        "jsCode": "// Code node: \"Build Retry Prompt\"\n// Input: items that failed validation after the first extraction attempt\n// (the FALSE branch of the \"Valid? (Attempt 1)\" IF node). Builds a second\n// prompt that shows the model its own invalid output and the validation\n// error, and asks it to correct it. This is the visible self-correction\n// step - its result is recorded by \"Validate & Shape (Retry)\" regardless\n// of whether the retry succeeds.\n//\n// getEmailText() is duplicated from \"Build Extraction Prompt\" as a safety\n// net: normally bodyText already carries through from that node via\n// `prior.bodyText`, but if it's somehow still empty here, this re-derives\n// it from the original Gmail message (looked up by paired item index)\n// rather than silently retrying with another empty body.\n\nfunction decodeBase64Url(data) {\n  if (!data) return \"\";\n  const normalized = data.replace(/-/g, \"+\").replace(/_/g, \"/\");\n  return Buffer.from(normalized, \"base64\").toString(\"utf8\");\n}\n\nfunction stripHtml(html) {\n  return html\n    .replace(/<style[\\s\\S]*?<\\/style>/gi, \"\")\n    .replace(/<script[\\s\\S]*?<\\/script>/gi, \"\")\n    .replace(/<br\\s*\\/?>/gi, \"\\n\")\n    .replace(/<\\/p>/gi, \"\\n\")\n    .replace(/<[^>]+>/g, \"\")\n    .replace(/&nbsp;/g, \" \")\n    .replace(/&amp;/g, \"&\")\n    .trim();\n}\n\nfunction findPartData(part, mimeType) {\n  if (!part) return null;\n  if (part.mimeType === mimeType && part.body && part.body.data) {\n    return part.body.data;\n  }\n  if (Array.isArray(part.parts)) {\n    for (const sub of part.parts) {\n      const found = findPartData(sub, mimeType);\n      if (found) return found;\n    }\n  }\n  return null;\n}\n\nfunction getEmailText(item) {\n  if (item.text && String(item.text).trim()) {\n    return { text: String(item.text).trim(), source: \"text\" };\n  }\n  if (item.textPlain && String(item.textPlain).trim()) {\n    return { text: String(item.textPlain).trim(), source: \"textPlain\" };\n  }\n\n  const payload = item.payload;\n\n  const plainPartData = payload ? findPartData(payload, \"text/plain\") : null;\n  if (plainPartData) {\n    const decoded = decodeBase64Url(plainPartData).trim();\n    if (decoded) return { text: decoded, source: \"payload.parts(text/plain)\" };\n  }\n\n  if (payload && payload.body && payload.body.data) {\n    const decoded = decodeBase64Url(payload.body.data).trim();\n    if (decoded) return { text: decoded, source: \"payload.body.data\" };\n  }\n\n  const htmlPartData = payload ? findPartData(payload, \"text/html\") : null;\n  if (htmlPartData) {\n    const decoded = stripHtml(decodeBase64Url(htmlPartData));\n    if (decoded) return { text: decoded, source: \"payload.parts(text/html)\" };\n  }\n\n  if (item.snippet && String(item.snippet).trim()) {\n    return { text: String(item.snippet).trim(), source: \"snippet\" };\n  }\n\n  return { text: \"\", source: \"none\" };\n}\n\nfunction buildRetryPrompt(subject, bodyText, previousAttemptJson, reason) {\n  return [\n    \"Your previous attempt to extract attendee contact details from this\",\n    \"conference RSVP email was invalid. Fix it.\",\n    \"\",\n    `Validation error: ${reason}`,\n    \"\",\n    `Your previous output was: ${previousAttemptJson}`,\n    \"\",\n    \"Read ONLY the subject and body text below. Do not assume anything\",\n    \"about who sent this email - the attendee's name, organisation, email,\",\n    \"and phone must come only from what is written in the body/signature.\",\n    \"\",\n    `Subject: ${subject}`,\n    \"Body:\",\n    \"---\",\n    bodyText,\n    \"---\",\n    \"\",\n    \"Respond with ONLY a JSON object, no other text, no markdown code\",\n    \"fences, in exactly this shape:\",\n    '{\"name\": string or null, \"organisation\": string or null, ' +\n      '\"email\": string or null, \"phone\": string or null}',\n    \"\",\n    \"Use null for any field not stated in the body. Do not invent values.\",\n  ].join(\"\\n\");\n}\n\nreturn items.map((item) => {\n  const prior = item.json;\n\n  let bodyText = prior.bodyText;\n  let bodySource = prior.body_source;\n  if (!bodyText || !bodyText.trim()) {\n    // Match by messageId, NOT by array position: this node's input is\n    // already the FALSE branch of the attempt-1 IF node, a filtered\n    // subset of \"Gmail - Get Many\"'s output, so positional indices\n    // between the two no longer line up.\n    const originalItem = $(\"Gmail - Get Many\")\n      .all()\n      .find((it) => it.json.id === prior.messageId);\n    const reExtracted = getEmailText(originalItem ? originalItem.json : {});\n    bodyText = reExtracted.text;\n    bodySource = `retry-reextracted:${reExtracted.source}`;\n  }\n\n  const previousAttemptJson = JSON.stringify({\n    name: prior.name,\n    organisation: prior.organisation,\n    email: prior.email,\n    phone: prior.phone,\n  });\n\n  return {\n    json: {\n      __kind: \"email\",\n      emailIndex: prior.emailIndex,\n      messageId: prior.messageId,\n      subject: prior.subject,\n      bodyText,\n      body_source: bodySource,\n      attempt: 2,\n      prompt: buildRetryPrompt(prior.subject, bodyText, previousAttemptJson, prior.reason),\n    },\n  };\n});\n"
       },
-      "id": "945ece42-07e5-44f5-98fb-f56ba07fd46c",
+      "id": "6fa84344-eca6-401e-aa10-5fbfba6bc162",
       "name": "Build Retry Prompt",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1150,
-        150
+        1552,
+        160
       ]
     },
     {
@@ -169,33 +173,32 @@
         "jsonBody": "={{ JSON.stringify({ model: \"claude-haiku-5-5\", max_tokens: 300, messages: [ { role: \"user\", content: $json.prompt } ] }) }}",
         "options": {}
       },
-      "id": "bba864c5-1041-48ff-b9df-aeafd70b1dbd",
+      "id": "7bce259e-78c1-4f07-a938-97790f1c10d0",
       "name": "Anthropic - Extract (Retry)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1400,
-        150
+        1808,
+        160
       ],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "2",
-          "name": "Anthropic API"
+          "id": "uDpGK5ohZfckNcE4",
+          "name": "Header Auth account"
         }
       }
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "// Code node: \"Validate & Shape (Retry)\"\n// Same logic as \"Validate & Shape (Attempt 1)\", but pulls sibling fields\n// from \"Build Retry Prompt\" instead, since this validates the SECOND\n// (retry) extraction call's response.\n\nconst EMAIL_RE = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;\n\nfunction parseClaudeJson(text) {\n  if (!text) return { ok: false, reason: \"empty response text\" };\n  let cleaned = text.trim();\n  const fenceMatch = cleaned.match(/```(?:json)?\\s*([\\s\\S]*?)\\s*```/i);\n  if (fenceMatch) cleaned = fenceMatch[1].trim();\n  try {\n    return { ok: true, value: JSON.parse(cleaned) };\n  } catch (err) {\n    return { ok: false, reason: `invalid JSON: ${err.message}` };\n  }\n}\n\nfunction validate(extracted) {\n  if (!extracted || typeof extracted !== \"object\") {\n    return { valid: false, reason: \"extraction is not a JSON object\" };\n  }\n  if (!extracted.name || typeof extracted.name !== \"string\" || !extracted.name.trim()) {\n    return { valid: false, reason: \"name is missing or empty\" };\n  }\n  if (extracted.email && !EMAIL_RE.test(String(extracted.email).trim())) {\n    return { valid: false, reason: `email \"${extracted.email}\" is not a valid email format` };\n  }\n  return { valid: true, reason: null };\n}\n\nconst results = [];\nfor (let i = 0; i < items.length; i++) {\n  const response = items[i].json;\n  const prior = $(\"Build Retry Prompt\").all()[i].json;\n\n  const textBlock =\n    response.content && response.content[0] && response.content[0].text;\n  const parsed = parseClaudeJson(textBlock);\n\n  let valid = false;\n  let reason = null;\n  let extracted = null;\n\n  if (!parsed.ok) {\n    reason = parsed.reason;\n  } else {\n    extracted = parsed.value;\n    const check = validate(extracted);\n    valid = check.valid;\n    reason = check.reason;\n  }\n\n  results.push({\n    json: {\n      __kind: \"email\",\n      emailIndex: prior.emailIndex,\n      messageId: prior.messageId,\n      subject: prior.subject,\n      bodyText: prior.bodyText,\n      attempt: prior.attempt,\n      valid,\n      reason,\n      name: extracted ? extracted.name || null : null,\n      organisation: extracted ? extracted.organisation || null : null,\n      email: extracted ? extracted.email || null : null,\n      phone: extracted ? extracted.phone || null : null,\n      extractionStatus: valid ? \"extracted_after_retry\" : \"extraction_failed\",\n      sources: [`Email ${prior.emailIndex}`],\n    },\n  });\n}\n\nreturn results;\n"
+        "jsCode": "// Code node: \"Validate & Shape (Retry)\"\n// Same logic as \"Validate & Shape (Attempt 1)\", but pulls sibling fields\n// from \"Build Retry Prompt\" instead, since this validates the SECOND\n// (retry) extraction call's response.\n//\n// Live-run diagnosis: reading `content[0].text` returned \"empty response\n// text\" even though a text block was present in `content`, because the\n// first content block isn't always the text block (a thinking/redacted\n// block can come first). Fixed by filtering content for type === \"text\"\n// and joining it, instead of indexing position 0.\n\nconst EMAIL_RE = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;\n\nfunction getResponseText(response) {\n  const blocks = Array.isArray(response.content) ? response.content : [];\n  return blocks\n    .filter((c) => c && c.type === \"text\")\n    .map((c) => c.text)\n    .join(\"\");\n}\n\nfunction parseClaudeJson(text) {\n  if (!text) return { ok: false, reason: \"empty response text\" };\n  let cleaned = text.trim();\n  const fenceMatch = cleaned.match(/```(?:json)?\\s*([\\s\\S]*?)\\s*```/i);\n  if (fenceMatch) cleaned = fenceMatch[1].trim();\n  try {\n    return { ok: true, value: JSON.parse(cleaned) };\n  } catch (err) {\n    return { ok: false, reason: `invalid JSON: ${err.message}` };\n  }\n}\n\nfunction validate(extracted) {\n  if (!extracted || typeof extracted !== \"object\") {\n    return { valid: false, reason: \"extraction is not a JSON object\" };\n  }\n  if (!extracted.name && !extracted.organisation && !extracted.email && !extracted.phone) {\n    return { valid: false, reason: \"no fields extracted\" };\n  }\n  if (!extracted.name || typeof extracted.name !== \"string\" || !extracted.name.trim()) {\n    return { valid: false, reason: \"name is missing or empty\" };\n  }\n  if (extracted.email && !EMAIL_RE.test(String(extracted.email).trim())) {\n    return { valid: false, reason: `email \"${extracted.email}\" is not a valid email format` };\n  }\n  return { valid: true, reason: null };\n}\n\nconst results = [];\nfor (let i = 0; i < items.length; i++) {\n  const response = items[i].json;\n  const prior = $(\"Build Retry Prompt\").all()[i].json;\n\n  const textBlock = getResponseText(response);\n  const parsed = parseClaudeJson(textBlock);\n\n  let valid = false;\n  let reason = null;\n  let extracted = null;\n\n  if (!parsed.ok) {\n    reason = parsed.reason;\n  } else {\n    extracted = parsed.value;\n    const check = validate(extracted);\n    valid = check.valid;\n    reason = check.reason;\n  }\n\n  results.push({\n    json: {\n      __kind: \"email\",\n      emailIndex: prior.emailIndex,\n      messageId: prior.messageId,\n      subject: prior.subject,\n      bodyText: prior.bodyText,\n      body_source: prior.body_source,\n      attempt: prior.attempt,\n      valid,\n      reason,\n      name: extracted ? extracted.name || null : null,\n      organisation: extracted ? extracted.organisation || null : null,\n      email: extracted ? extracted.email || null : null,\n      phone: extracted ? extracted.phone || null : null,\n      extractionStatus: valid ? \"extracted_after_retry\" : \"extraction_failed\",\n      sources: [`Email ${prior.emailIndex}`],\n    },\n  });\n}\n\nreturn results;\n"
       },
-      "id": "f9893f69-cdbd-406a-b73c-769f1a003b59",
+      "id": "0e78e5d0-6a05-4922-8ad9-cd8fd541dfbe",
       "name": "Validate & Shape (Retry)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1650,
-        150
+        2064,
+        160
       ]
     },
     {
@@ -204,7 +207,7 @@
           "combinator": "and",
           "conditions": [
             {
-              "id": "2df37bbf-3af9-45b4-a620-323169d7a162",
+              "id": "8046188b-7248-4f75-a895-112319a87ccc",
               "leftValue": "={{ $json.valid }}",
               "rightValue": true,
               "operator": {
@@ -212,64 +215,62 @@
                 "operation": "equals"
               }
             }
-          ]
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          }
         },
         "options": {}
       },
-      "id": "cd507413-5a35-4bb4-a8b4-213f4e11fffb",
+      "id": "724c7dc7-b650-439c-ab7a-5f7a555dabd0",
       "name": "Valid? (Retry)",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1900,
-        150
+        2304,
+        160
       ]
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
         "jsCode": "// Code node: \"Mark Extraction Failed\"\n// Input: items still invalid after the retry (FALSE branch of \"Valid?\n// (Retry)\"). Whatever partial fields the model produced are unreliable, so\n// this clears them and shapes the item into the same candidate-row shape\n// used everywhere downstream, flagged for a human to resolve.\n\nreturn items.map((item) => {\n  const prior = item.json;\n  return {\n    json: {\n      __kind: \"email\",\n      emailIndex: prior.emailIndex,\n      messageId: prior.messageId,\n      subject: prior.subject,\n      name: null,\n      organisation: null,\n      email: null,\n      phone: null,\n      extractionStatus: \"extraction_failed\",\n      attempts: 2,\n      sources: [`Email ${prior.emailIndex}`],\n      flags: [`extraction_failed: ${prior.reason}`],\n    },\n  };\n});\n"
       },
-      "id": "d899cd0a-165a-46db-bd78-70b2c471d28a",
+      "id": "944c4c59-fe33-4c03-a2ce-d142170341e4",
       "name": "Mark Extraction Failed",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2150,
-        300
+        2560,
+        304
       ]
     },
     {
-      "parameters": {
-        "mode": "append",
-        "numberInputs": 2
-      },
-      "id": "8f8a229e-491f-44eb-aaf9-f8067b3e4276",
+      "parameters": {},
+      "id": "ee8f8686-10fd-4d06-ae57-2a9f8a18a197",
       "name": "Merge - Combine Valid Extractions",
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3,
       "position": [
-        2150,
+        2560,
         0
       ]
     },
     {
-      "parameters": {
-        "mode": "append",
-        "numberInputs": 2
-      },
-      "id": "95c5f74a-c60f-4072-ab1e-cf03857b1586",
+      "parameters": {},
+      "id": "f348a46b-c65e-4323-8c6c-33da2289d9da",
       "name": "Merge - Combine All Email Candidates",
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3,
       "position": [
-        2400,
-        50
+        2800,
+        64
       ]
     },
     {
       "parameters": {
-        "resource": "event",
         "operation": "getAll",
         "calendar": {
           "__rl": true,
@@ -277,212 +278,204 @@
           "value": "primary"
         },
         "returnAll": true,
-        "timeMin": "2026-11-18T00:00:00.000Z",
-        "timeMax": "2026-11-20T00:00:00.000Z",
         "options": {
           "query": "Atlas AI Summit"
         }
       },
-      "id": "d222f94e-1220-47a9-aaee-e5ca7a4a75fb",
+      "id": "b3d929e4-74c9-4356-855f-528edec1c69f",
       "name": "Google Calendar - Get Many",
       "type": "n8n-nodes-base.googleCalendar",
       "typeVersion": 1.2,
       "position": [
-        -100,
-        500
+        304,
+        512
       ],
       "credentials": {
         "googleCalendarOAuth2Api": {
-          "id": "3",
+          "id": "BafCcLk23nBUXreV",
           "name": "Google Calendar account"
         }
       }
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
         "jsCode": "// Code node: \"Parse Calendar\"\n// Deterministic parsing (no LLM) of Google Calendar event descriptions.\n// Expects events whose description contains lines shaped like\n// \"- Name, Organisation\" (see data/synthetic/part2_seed.md). Only keeps\n// events whose title actually contains \"Atlas AI Summit\" - the Calendar\n// node's own query narrows this already, but this is the one place that\n// deterministically enforces it regardless of how loose that query match\n// is.\n\nconst ATTENDEE_LINE_RE = /^[-*]\\s*(.+?),\\s*(.+)$/;\n\nconst results = [];\n\nitems.forEach((item, eventIndex) => {\n  const event = item.json;\n  const title = event.summary || event.title || \"\";\n  if (!title.includes(\"Atlas AI Summit\")) return;\n\n  const description = event.description || \"\";\n  const lines = description.split(/\\r?\\n/);\n\n  lines.forEach((line) => {\n    const trimmed = line.trim();\n    const match = trimmed.match(ATTENDEE_LINE_RE);\n    if (!match) return;\n\n    const name = match[1].trim();\n    const organisation = match[2].trim();\n\n    results.push({\n      json: {\n        __kind: \"calendar\",\n        name,\n        organisation,\n        email: null,\n        phone: null,\n        extractionStatus: \"calendar_parsed\",\n        attempts: 1,\n        sources: [`Event: ${title}`],\n        flags: [],\n      },\n    });\n  });\n});\n\nreturn results;\n"
       },
-      "id": "6c96b9e1-cbbf-4d2d-a678-b9e09e85f1dd",
+      "id": "e403eef0-b094-43ce-87e7-67536e3afa92",
       "name": "Parse Calendar",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        150,
-        500
+        560,
+        512
       ]
     },
     {
-      "parameters": {
-        "mode": "append",
-        "numberInputs": 2
-      },
-      "id": "3cdbc174-a97f-4ad3-993e-23ee5ec349c4",
+      "parameters": {},
+      "id": "18e87d81-6548-4aa3-be97-9ab8d0b04c37",
       "name": "Merge - Combine Email + Calendar Candidates",
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3,
       "position": [
-        2650,
-        250
+        3056,
+        256
       ]
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
         "jsCode": "// Code node: \"Normalise\"\n// Input: merged email-extraction candidates + calendar-parsed candidates.\n// Adds normalised fields used for matching further down the pipeline.\n// Display fields (name/organisation/email/phone) are left as extracted;\n// only the normalised* fields are lowercased/reformatted.\n\nfunction collapseWhitespace(s) {\n  return s ? String(s).trim().replace(/\\s+/g, \" \") : null;\n}\n\nfunction normaliseEmail(email) {\n  return email ? String(email).trim().toLowerCase() : null;\n}\n\nfunction normalisePhone(raw) {\n  if (!raw) return null;\n  let digits = String(raw).replace(/[^\\d+]/g, \"\");\n  if (digits.startsWith(\"+27\")) {\n    return \"+27\" + digits.slice(3).replace(/\\D/g, \"\");\n  }\n  if (digits.startsWith(\"27\") && digits.length >= 11) {\n    return \"+\" + digits;\n  }\n  if (digits.startsWith(\"0\")) {\n    return \"+27\" + digits.slice(1);\n  }\n  if (digits.startsWith(\"+\")) {\n    return digits;\n  }\n  if (digits.length > 0) {\n    return \"+27\" + digits;\n  }\n  return null;\n}\n\nfunction squash(s) {\n  return s ? String(s).toLowerCase().replace(/[^a-z0-9]/g, \"\") : null;\n}\n\nreturn items.map((item) => {\n  const c = item.json;\n  const name = collapseWhitespace(c.name);\n  const organisation = collapseWhitespace(c.organisation);\n\n  return {\n    json: {\n      ...c,\n      name,\n      organisation,\n      email: c.email ? String(c.email).trim() : null,\n      phone: c.phone ? String(c.phone).trim() : null,\n      normalisedName: name ? name.toLowerCase() : null,\n      normalisedOrg: organisation ? organisation.toLowerCase() : null,\n      squashedOrg: squash(organisation),\n      normalisedEmail: normaliseEmail(c.email),\n      normalisedPhone: normalisePhone(c.phone),\n    },\n  };\n});\n"
       },
-      "id": "93494041-119a-4d02-aa27-ef3e173b03c2",
+      "id": "fccf61ca-0fe8-4b83-ad06-d35fa07a66da",
       "name": "Normalise",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2900,
-        250
+        3312,
+        256
       ]
     },
     {
       "parameters": {
-        "method": "GET",
         "url": "https://raw.githubusercontent.com/NickiMash17/inference-agent-challenge/main/data/kb/speakers.json",
-        "options": {}
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
       },
-      "id": "4b6087df-3094-4476-bc1f-68e15910d2f1",
+      "id": "97fedbc0-39f3-4955-8cb0-6be1ec7f9588",
       "name": "HTTP Request - Fetch Speakers Directory",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -100,
-        900
+        304,
+        912
       ]
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
         "jsCode": "// Code node: \"Tag Directory\"\n// Input: speakers.json fetched by the HTTP Request node. n8n's HTTP\n// Request node splits a top-level JSON array response into one item per\n// array element automatically, so each item here is already one speaker\n// record. This just tags them and adds the same normalised fields used\n// for matching elsewhere, so \"Verify & Dedupe\" can compare like with like.\n\nfunction collapseWhitespace(s) {\n  return s ? String(s).trim().replace(/\\s+/g, \" \") : null;\n}\n\nfunction normalisePhone(raw) {\n  if (!raw) return null;\n  let digits = String(raw).replace(/[^\\d+]/g, \"\");\n  if (digits.startsWith(\"+27\")) {\n    return \"+27\" + digits.slice(3).replace(/\\D/g, \"\");\n  }\n  if (digits.startsWith(\"27\") && digits.length >= 11) {\n    return \"+\" + digits;\n  }\n  if (digits.startsWith(\"0\")) {\n    return \"+27\" + digits.slice(1);\n  }\n  if (digits.startsWith(\"+\")) {\n    return digits;\n  }\n  if (digits.length > 0) {\n    return \"+27\" + digits;\n  }\n  return null;\n}\n\nfunction squash(s) {\n  return s ? String(s).toLowerCase().replace(/[^a-z0-9]/g, \"\") : null;\n}\n\nreturn items.map((item) => {\n  const speaker = item.json;\n  const name = collapseWhitespace(speaker.full_name);\n  const organisation = collapseWhitespace(speaker.organisation);\n\n  return {\n    json: {\n      __kind: \"directory\",\n      speaker_id: speaker.speaker_id,\n      name,\n      organisation,\n      email: speaker.email || null,\n      phone: speaker.phone || null,\n      normalisedName: name ? name.toLowerCase() : null,\n      normalisedOrg: organisation ? organisation.toLowerCase() : null,\n      squashedOrg: squash(organisation),\n      normalisedEmail: speaker.email ? String(speaker.email).trim().toLowerCase() : null,\n      normalisedPhone: normalisePhone(speaker.phone),\n    },\n  };\n});\n"
       },
-      "id": "7213b30e-9cea-487b-acfa-f7c71e892549",
+      "id": "44e98899-5d9d-4e2b-92d1-8aeef0b26e82",
       "name": "Tag Directory",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        150,
-        900
+        560,
+        912
       ]
     },
     {
-      "parameters": {
-        "mode": "append",
-        "numberInputs": 2
-      },
-      "id": "0c7b569f-55c7-4c54-8aa4-577a0ec75282",
+      "parameters": {},
+      "id": "d5de26b9-2db8-4930-ad7e-1c483f1cee4b",
       "name": "Merge - Combine Candidates + Directory",
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3,
       "position": [
-        3150,
-        500
+        3552,
+        512
       ]
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
         "jsCode": "// Code node: \"Verify & Dedupe\"\n// Input: normalised candidate rows (__kind 'email'/'calendar') merged with\n// the tagged speaker directory (__kind 'directory'). Resolves each\n// candidate against the directory, then dedupes resolved candidates into\n// one row per real attendee. Outputs __kind 'attendee' rows.\n\nconst NAME_MATCH_THRESHOLD = 2; // max Levenshtein edits to call two names \"the same\"\nconst ORG_MATCH_THRESHOLD = 2; // max Levenshtein edits on squashed org strings\n\nfunction levenshtein(a, b) {\n  if (a === b) return 0;\n  if (!a) return b ? b.length : 0;\n  if (!b) return a.length;\n  const m = a.length;\n  const n = b.length;\n  const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));\n  for (let i = 0; i <= m; i++) dp[i][0] = i;\n  for (let j = 0; j <= n; j++) dp[0][j] = j;\n  for (let i = 1; i <= m; i++) {\n    for (let j = 1; j <= n; j++) {\n      const cost = a[i - 1] === b[j - 1] ? 0 : 1;\n      dp[i][j] = Math.min(\n        dp[i - 1][j] + 1,\n        dp[i][j - 1] + 1,\n        dp[i - 1][j - 1] + cost\n      );\n    }\n  }\n  return dp[m][n];\n}\n\nconst all = items.map((i) => i.json);\nconst directory = all.filter((i) => i.__kind === \"directory\");\nconst candidates = all.filter((i) => i.__kind === \"email\" || i.__kind === \"calendar\");\n\nfunction findExact(candidate) {\n  if (candidate.normalisedEmail) {\n    const hit = directory.find((d) => d.normalisedEmail === candidate.normalisedEmail);\n    if (hit) return { speaker: hit, via: \"exact_email\" };\n  }\n  if (candidate.normalisedPhone) {\n    const hit = directory.find((d) => d.normalisedPhone === candidate.normalisedPhone);\n    if (hit) return { speaker: hit, via: \"exact_phone\" };\n  }\n  return null;\n}\n\nfunction bestNameMatch(candidate) {\n  if (!candidate.normalisedName) return null;\n  let best = null;\n  let bestDist = Infinity;\n  for (const speaker of directory) {\n    const dist = levenshtein(candidate.normalisedName, speaker.normalisedName || \"\");\n    if (dist < bestDist) {\n      bestDist = dist;\n      best = speaker;\n    }\n  }\n  if (best && bestDist <= NAME_MATCH_THRESHOLD) return { speaker: best, distance: bestDist };\n  return null;\n}\n\nfunction orgMatchSet(candidate) {\n  if (!candidate.squashedOrg) return [];\n  let bestDist = Infinity;\n  for (const speaker of directory) {\n    const dist = levenshtein(candidate.squashedOrg, speaker.squashedOrg || \"\");\n    if (dist < bestDist) bestDist = dist;\n  }\n  if (bestDist > ORG_MATCH_THRESHOLD) return [];\n  return directory.filter(\n    (speaker) => levenshtein(candidate.squashedOrg, speaker.squashedOrg || \"\") === bestDist\n  );\n}\n\nfunction resolveOne(candidate) {\n  const changes = [];\n  const flags = Array.isArray(candidate.flags) ? [...candidate.flags] : [];\n\n  if (candidate.extractionStatus === \"extraction_failed\") {\n    return {\n      ...candidate,\n      status: \"extraction_failed\",\n      speaker_id: null,\n      candidates: [],\n      changes,\n      flags,\n    };\n  }\n\n  const exact = findExact(candidate);\n  const nameMatch = bestNameMatch(candidate);\n  const orgSet = orgMatchSet(candidate);\n  const orgIds = orgSet.map((s) => s.speaker_id);\n\n  let speaker = null;\n  let status = null;\n  let ambiguousCandidates = [];\n\n  if (exact) {\n    speaker = exact.speaker;\n    status = \"confirmed\";\n  } else if (nameMatch && orgIds.length > 0 && !orgIds.includes(nameMatch.speaker.speaker_id)) {\n    // Best name match and best org match disagree on WHO this is.\n    status = \"flagged_ambiguous\";\n    ambiguousCandidates = Array.from(new Set([nameMatch.speaker.speaker_id, ...orgIds]));\n    flags.push(\n      `name best-matches ${nameMatch.speaker.speaker_id} (${nameMatch.speaker.name}) but ` +\n        `organisation best-matches ${orgIds.join(\"/\")} - not auto-resolved`\n    );\n  } else if (nameMatch) {\n    speaker = nameMatch.speaker;\n    status = nameMatch.distance === 0 ? \"confirmed\" : \"corrected\";\n  } else if (!candidate.normalisedName && orgIds.length === 1) {\n    speaker = orgSet[0];\n    status = \"corrected\";\n  }\n\n  if (status === \"flagged_ambiguous\") {\n    return {\n      ...candidate,\n      status,\n      speaker_id: null,\n      candidates: ambiguousCandidates,\n      changes,\n      flags,\n    };\n  }\n\n  if (!speaker) {\n    return {\n      ...candidate,\n      status: \"new_delegate\",\n      speaker_id: null,\n      candidates: [],\n      changes,\n      flags,\n    };\n  }\n\n  // Identity resolved to `speaker` - reconcile field-level differences.\n  let resultName = candidate.name;\n  if (candidate.name && speaker.name && candidate.name !== speaker.name) {\n    changes.push(`full_name: '${candidate.name}' -> '${speaker.name}'`);\n    resultName = speaker.name;\n    status = \"corrected\";\n  } else if (!candidate.name) {\n    resultName = speaker.name;\n  }\n\n  let resultOrg = candidate.organisation;\n  if (candidate.organisation && speaker.organisation && candidate.organisation !== speaker.organisation) {\n    changes.push(`organisation: '${candidate.organisation}' -> '${speaker.organisation}'`);\n    resultOrg = speaker.organisation;\n    status = \"corrected\";\n  } else if (!candidate.organisation) {\n    resultOrg = speaker.organisation;\n  }\n\n  let resultEmail = candidate.email;\n  if (!candidate.email && speaker.email) {\n    changes.push(`email: filled from directory ('${speaker.email}')`);\n    resultEmail = speaker.email;\n    status = \"corrected\";\n  } else if (candidate.email && speaker.email && candidate.normalisedEmail !== speaker.normalisedEmail) {\n    flags.push(`RSVP email '${candidate.email}' differs from directory email '${speaker.email}'`);\n    status = \"flagged_email_mismatch\";\n  }\n\n  let resultPhone = candidate.phone;\n  if (!candidate.phone && speaker.phone) {\n    resultPhone = speaker.phone;\n  }\n\n  return {\n    ...candidate,\n    name: resultName,\n    organisation: resultOrg,\n    email: resultEmail,\n    phone: resultPhone,\n    status,\n    speaker_id: speaker.speaker_id,\n    candidates: [],\n    changes,\n    flags,\n  };\n}\n\nconst resolved = candidates.map(resolveOne);\n\n// Dedupe: group by speaker_id, else by ambiguous-candidate-set, else by\n// normalised email/phone, else treat as a distinct new delegate.\nconst groups = new Map();\n\nfunction groupKey(row) {\n  if (row.speaker_id) return `speaker:${row.speaker_id}`;\n  if (row.status === \"flagged_ambiguous\") return `ambiguous:${[...row.candidates].sort().join(\"+\")}`;\n  if (row.normalisedEmail) return `email:${row.normalisedEmail}`;\n  if (row.normalisedPhone) return `phone:${row.normalisedPhone}`;\n  return `new:${row.normalisedName || Math.random()}`;\n}\n\nfor (const row of resolved) {\n  const key = groupKey(row);\n  if (!groups.has(key)) {\n    groups.set(key, { ...row, sources: [...(row.sources || [])] });\n    continue;\n  }\n  const existing = groups.get(key);\n  existing.sources = Array.from(new Set([...(existing.sources || []), ...(row.sources || [])]));\n  existing.changes = Array.from(new Set([...(existing.changes || []), ...(row.changes || [])]));\n  existing.flags = Array.from(new Set([...(existing.flags || []), ...(row.flags || [])]));\n  // Prefer a non-null value already on the group; otherwise take this row's.\n  existing.name = existing.name || row.name;\n  existing.organisation = existing.organisation || row.organisation;\n  existing.email = existing.email || row.email;\n  existing.phone = existing.phone || row.phone;\n  // \"corrected\"/\"flagged_*\" outrank a plain \"confirmed\" when merging.\n  if (existing.status === \"confirmed\" && row.status !== \"confirmed\") {\n    existing.status = row.status;\n  }\n}\n\nreturn Array.from(groups.values()).map((row) => ({\n  json: {\n    __kind: \"attendee\",\n    name: row.name,\n    organisation: row.organisation,\n    email: row.email,\n    phone: row.phone,\n    speaker_id: row.speaker_id || null,\n    status: row.status,\n    candidates: row.candidates || [],\n    sources: row.sources || [],\n    changes: row.changes || [],\n    flags: row.flags || [],\n  },\n}));\n"
       },
-      "id": "c1316cb6-bbd2-4954-ae09-30958e6eed78",
+      "id": "7165074d-be6a-4abb-9d5e-efb38bf1b480",
       "name": "Verify & Dedupe",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3400,
-        500
+        3808,
+        512
       ]
     },
     {
       "parameters": {
-        "method": "GET",
         "url": "https://raw.githubusercontent.com/NickiMash17/inference-agent-challenge/main/data/synthetic/part2_answer_key.json",
-        "options": {}
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
       },
-      "id": "b31f2b13-5aa7-4c86-8620-a6806aa09043",
+      "id": "603c34aa-5edd-4e4b-9e18-c0e1ecca3be3",
       "name": "HTTP Request - Fetch Answer Key",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -100,
-        1300
+        304,
+        1312
       ]
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
         "jsCode": "// Code node: \"Tag Answer Key\"\n// Input: the single JSON object fetched from part2_answer_key.json. Just\n// tags it so it survives the merge into the \"Score vs Answer Key\" node\n// alongside the attendee rows.\n\nreturn items.map((item) => ({\n  json: {\n    __kind: \"answer_key\",\n    answerKey: item.json,\n  },\n}));\n"
       },
-      "id": "23ead63c-e51a-4e24-990e-43643bd0b068",
+      "id": "1d7cb1bb-fbfd-420e-b73d-07d6d50d05cc",
       "name": "Tag Answer Key",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        150,
-        1300
+        560,
+        1312
       ]
     },
     {
-      "parameters": {
-        "mode": "append",
-        "numberInputs": 2
-      },
-      "id": "61bc0979-9773-47c4-a9b5-d430339df5c4",
+      "parameters": {},
+      "id": "b6535632-6090-439d-a062-b5320d04bcee",
       "name": "Merge - Combine Attendees + Answer Key",
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3,
       "position": [
-        3650,
-        750
+        4064,
+        752
       ]
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
         "jsCode": "// Code node: \"Score vs Answer Key\"\n// Input: resolved attendee rows (__kind 'attendee') merged with the tagged\n// answer key (__kind 'answer_key'). Passes the attendee rows through\n// unchanged and adds one extra item (__kind 'score_summary') reporting\n// \"Planted errors caught: X / 8\" plus a per-error pass/fail breakdown.\n//\n// Each check below is keyed to one planted_errors[].id from\n// data/synthetic/part2_answer_key.json and inspects the final attendee\n// list for the specific, documented resolution that error is supposed to\n// produce - it does not require exact string equality with every field in\n// the answer key, since several reasonable (but not byte-identical)\n// resolutions can be equally \"correct\" for a flagged/ambiguous case.\n\nconst all = items.map((i) => i.json);\nconst attendees = all.filter((i) => i.__kind === \"attendee\");\nconst answerKeyItem = all.find((i) => i.__kind === \"answer_key\");\nconst answerKey = answerKeyItem ? answerKeyItem.answerKey : null;\n\nfunction bySpeaker(id) {\n  return attendees.find((a) => a.speaker_id === id);\n}\n\nfunction hasChange(attendee, substrings) {\n  if (!attendee || !Array.isArray(attendee.changes)) return false;\n  return attendee.changes.some((c) => substrings.every((s) => c.includes(s)));\n}\n\nconst checks = [\n  {\n    id: \"err-1-phone-format\",\n    pass: () => {\n      const a = bySpeaker(\"SP-013\");\n      return !!a && a.status !== \"new_delegate\" && a.status !== \"flagged_ambiguous\";\n    },\n  },\n  {\n    id: \"err-2-misspelled-org\",\n    pass: () => {\n      const a = bySpeaker(\"SP-016\");\n      return !!a && a.organisation === \"Silverline Robotics\" && hasChange(a, [\"organisation\"]);\n    },\n  },\n  {\n    id: \"err-3-missing-email\",\n    pass: () => {\n      const a = bySpeaker(\"SP-019\");\n      return !!a && a.email === \"joseph.torres@example.org\";\n    },\n  },\n  {\n    id: \"err-4-duplicate-rsvp\",\n    pass: () => {\n      const a = bySpeaker(\"SP-008\");\n      return !!a && a.name === \"Paige Williams\" && (a.sources || []).length >= 2;\n    },\n  },\n  {\n    id: \"err-5-identity-collision\",\n    pass: () => {\n      const flagged = attendees.find(\n        (a) =>\n          a.status === \"flagged_ambiguous\" &&\n          Array.isArray(a.candidates) &&\n          a.candidates.includes(\"SP-001\") &&\n          a.candidates.includes(\"SP-002\")\n      );\n      return !!flagged;\n    },\n  },\n  {\n    id: \"err-6-email-mismatch\",\n    pass: () => {\n      const a = bySpeaker(\"SP-011\");\n      return !!a && a.status === \"flagged_email_mismatch\";\n    },\n  },\n  {\n    id: \"err-7-not-in-directory\",\n    pass: () => {\n      return attendees.some(\n        (a) => a.status === \"new_delegate\" && a.name && a.name.includes(\"Priya Naidoo\")\n      );\n    },\n  },\n  {\n    id: \"err-8-calendar-org-typo\",\n    pass: () => {\n      const a = bySpeaker(\"SP-019\");\n      return !!a && a.organisation === \"Horizon Cognition\" && hasChange(a, [\"Horizon Cognition\"]);\n    },\n  },\n];\n\nconst results = checks.map((check) => ({\n  id: check.id,\n  passed: check.pass(),\n}));\n\nconst passedCount = results.filter((r) => r.passed).length;\n\nconst output = attendees.map((a) => ({ json: a }));\noutput.push({\n  json: {\n    __kind: \"score_summary\",\n    summary: `Planted errors caught: ${passedCount} / ${checks.length}`,\n    results,\n    attendee_count: attendees.length,\n    expected_attendee_count: answerKey ? answerKey.expected_final_attendee_count : null,\n  },\n});\n\nreturn output;\n"
       },
-      "id": "5b1b17f1-62d1-48b2-a2b2-0486a128f4f4",
+      "id": "02314bc0-7ec1-4932-8248-008e58eb30de",
       "name": "Score vs Answer Key",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3900,
-        750
+        4304,
+        752
       ]
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
         "jsCode": "// Code node: \"Split Attendees for CSV\"\n// Input: the passthrough output of \"Score vs Answer Key\" (attendee rows\n// plus one score_summary row). Keeps only the attendee rows, flattens the\n// array fields to plain strings so \"Convert to File\" produces a readable\n// CSV column instead of \"[object Object]\".\n\nreturn items\n  .filter((item) => item.json.__kind === \"attendee\")\n  .map((item) => {\n    const a = item.json;\n    return {\n      json: {\n        name: a.name,\n        organisation: a.organisation,\n        email: a.email,\n        phone: a.phone,\n        speaker_id: a.speaker_id || \"\",\n        status: a.status,\n        candidates: (a.candidates || []).join(\"; \"),\n        sources: (a.sources || []).join(\"; \"),\n        changes: (a.changes || []).join(\"; \"),\n        flags: (a.flags || []).join(\"; \"),\n      },\n    };\n  });\n"
       },
-      "id": "46503d09-fa9d-4829-9c13-b6b9889aff4a",
+      "id": "eb2ce905-554c-4640-ac5e-d6afd2623e30",
       "name": "Split Attendees for CSV",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4150,
-        750
+        4560,
+        752
       ]
     },
     {
       "parameters": {
-        "operation": "toCsv",
-        "options": {}
+        "operation": "toCsv"
       },
-      "id": "3afabc5e-54d9-46db-86cc-ca814ce9b1d2",
+      "id": "50fb6629-616b-4414-a827-5536250e5128",
       "name": "Convert to File - CSV",
       "type": "n8n-nodes-base.convertToFile",
       "typeVersion": 1.1,
       "position": [
-        4400,
-        750
+        4800,
+        752
       ]
     }
   ],
+  "pinData": {},
   "connections": {
     "Manual Trigger": {
       "main": [
@@ -800,12 +793,17 @@
       ]
     }
   },
-  "pinData": {},
+  "active": false,
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "binaryMode": "separate"
   },
-  "versionId": "3c5b03bd-f27b-4356-b8e1-dd95f6dd4bc6",
+  "versionId": "9c439dbe-9686-47ca-813a-8ddcd1d5a0df",
   "meta": {
-    "instanceId": "267ef551-c8ba-4416-9e73-55eaa0be9126"
-  }
+    "templateCredsSetupCompleted": true,
+    "instanceId": "6bf9aabafccad550407114124a23d08c8f3cc3980943777d8a01d919fe1c44af"
+  },
+  "nodeGroups": [],
+  "id": "8DwYC2rkLuZ1NXvf",
+  "tags": []
 }
