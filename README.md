@@ -169,7 +169,39 @@ verification pipeline.
 
 ## Running locally
 
-TODO: setup and run instructions (uv, env vars, Streamlit app).
+```bash
+uv sync                                      # runtime deps
+cp .env.example .env                         # then fill in ATLAS_ANTHROPIC_API_KEY
+uv run streamlit run app/Home.py
+```
+
+The app needs `data/kb/`, `evals/kb_gold.jsonl`, and `evals/baselines/e2e_v2.json`
+to already exist (they're generated/checked in as part of this repo, not
+built by the app itself). First load builds the index/DuckDB store/embedding
+model once (cached via `st.cache_resource`) and may take a few seconds
+longer than subsequent loads.
+
+### Deploying to Streamlit Community Cloud
+
+- Set `ATLAS_ANTHROPIC_API_KEY` as a root-level **secret** in the app's
+  settings - Streamlit Cloud exposes these as environment variables, which
+  `Settings` reads directly; a `st.secrets` fallback also exists for local
+  dev with `.streamlit/secrets.toml` instead of `.env`. Never commit
+  `.streamlit/secrets.toml` (already gitignored).
+- `requirements.txt` is what Streamlit Cloud installs from - it's generated
+  from `pyproject.toml`'s runtime dependencies only (no `dev`/`data`
+  groups), via:
+  ```bash
+  uv export --no-dev --no-group data --no-hashes --format requirements-txt -o requirements.txt
+  ```
+  Regenerate it after any change to the main `dependencies` list in
+  `pyproject.toml`.
+- Streamlit runs each page as its own script with that script's own
+  directory on `sys.path`, not the repo root - `app/Home.py`,
+  `app/pages/1_Part1_RAG.py`, and `app/resources.py` each insert the repo
+  root into `sys.path` before importing `rag`/`shared`, so this works the
+  same locally and once deployed. Verify with
+  `uv run streamlit run app/Home.py` from the repo root.
 
 ## Evaluation
 

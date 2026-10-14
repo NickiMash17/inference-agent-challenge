@@ -6,7 +6,7 @@ or set ANTHROPIC_API_KEY anywhere in this project.
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -45,6 +45,26 @@ class Settings(BaseSettings):
     #: The Anthropic SDK retries connection errors and 408/409/429/5xx
     #: responses internally with backoff up to this many times.
     max_retries: int = Field(default=3, alias="LLM_MAX_RETRIES")
+
+    @model_validator(mode="after")
+    def _fall_back_to_streamlit_secrets(self) -> Settings:
+        """Streamlit Community Cloud exposes root-level secrets as
+        environment variables, so the field above already covers it in
+        production. This fallback only matters for local development with
+        a .streamlit/secrets.toml instead of .env. Never logs the key -
+        this only ever assigns it into the (in-memory) settings object."""
+        if not self.atlas_anthropic_api_key:
+            try:
+                import streamlit as st
+
+                if "ATLAS_ANTHROPIC_API_KEY" in st.secrets:
+                    self.atlas_anthropic_api_key = st.secrets["ATLAS_ANTHROPIC_API_KEY"]
+            except Exception:
+                # No streamlit installed, no secrets.toml, or any other
+                # issue reading it - fall through with the key still unset,
+                # handled the same as "absent" everywhere else.
+                pass
+        return self
 
     @property
     def pricing(self) -> dict[str, ModelPricing]:

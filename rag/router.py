@@ -3,6 +3,7 @@ LLM classification into sql / retrieve / rewrite_retrieve / out_of_scope."""
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import Literal
 
@@ -15,6 +16,16 @@ LLMRoute = Literal["sql", "retrieve", "rewrite_retrieve", "out_of_scope"]
 Route = Literal["id_lookup", "sql", "retrieve", "rewrite_retrieve", "out_of_scope"]
 
 _VALID_LLM_ROUTES = {"sql", "retrieve", "rewrite_retrieve", "out_of_scope"}
+
+#: A query mentioning an ID AND aggregation language (e.g. "how many
+#: sessions is SP-001 presenting") is an aggregation question that happens
+#: to name an entity, not a simple ID lookup - it needs sessions_active
+#: GROUP BY/COUNT, which the deterministic id_lookup path can't do. Send it
+#: to the LLM router instead of short-circuiting.
+_AGGREGATION_LANGUAGE = re.compile(
+    r"\b(how many|count|number of|average|total|most|least|highest|lowest)\b",
+    re.IGNORECASE,
+)
 
 
 class RouteDecision(BaseModel):
@@ -64,7 +75,7 @@ def route(
     model: str,
     table_names: list[str],
 ) -> RouterOutcome:
-    if ID_PATTERN.search(query):
+    if ID_PATTERN.search(query) and not _AGGREGATION_LANGUAGE.search(query):
         return RouterOutcome(
             route="id_lookup",
             rationale="query contains an exact ID (session/speaker/room)",
